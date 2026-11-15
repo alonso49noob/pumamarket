@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#061212" />
+    <title>PumaMarket — Predice el futuro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="PumaMarket inicio">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none"><path d="M50.8 17.4c-5.7-6-14.3-8.7-22.5-7.2-8.4 1.5-15.4 7.1-18.5 14.7-2.4 5.9-2.3 12.6.2 18.5l-3.2 7.9 8.3-2.7c6 4.8 14.2 6.4 21.6 4 7.7-2.4 13.8-8.9 15.8-16.8 1.7-6.6 1.1-13.2-1.6-18.4Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M19 31.5c4.3-4.6 8.7-5.1 13.1-1.3 4.4 3.8 8.6 3.4 12.9-1.3M20 23l5-3M44 23l-5-3" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+        </span>
+        <span>puma<span>market</span></span>
+      </a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a class="active" href="#inicio">Explorar</a>
+        <a href="#tendencias">Tendencias</a>
+        <a href="#mi-cartera">Mi actividad</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="icon-button search-toggle" aria-label="Buscar mercados">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.2 4.2"></path></svg>
+        </button>
+        <button class="sign-in-button" id="signInButton">Iniciar sesión <span>↗</span></button>
+      </div>
+    </header>
+
+    <main id="inicio">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><i></i> PREDICCIONES, NO DINERO</p>
+          <h1>Lee el mundo.<br /><em>Marca tu visión.</em></h1>
+          <p class="hero-description">Una plaza para poner a prueba tus ideas sobre lo que viene. Usa puntos Puma, sigue el pulso de la comunidad y aprende de cada predicción.</p>
+          <div class="hero-actions">
+            <a class="primary-button" href="#mercados">Ver mercados <span>↓</span></a>
+            <button class="text-button" id="howItWorks">¿Cómo funciona? <span>→</span></button>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-label="Gráfico de actividad de PumaMarket">
+          <div class="glow glow-one"></div><div class="glow glow-two"></div>
+          <div class="orbital-line line-one"></div><div class="orbital-line line-two"></div>
+          <div class="puma-orb">
+            <div class="puma-symbol">P</div>
+            <div class="orb-ring ring-a"></div><div class="orb-ring ring-b"></div>
+          </div>
+          <div class="signal-card signal-top"><span class="pulse-dot"></span><b>+18,240</b><small>puntos en juego</small></div>
+          <div class="signal-card signal-bottom"><span class="chart-bars"><i></i><i></i><i></i><i></i><i></i></span><b>72%</b><small>confianza media</small></div>
+          <div class="floating-tag tag-one">TECNOLOGÍA <b>↑</b></div>
+          <div class="floating-tag tag-two">DEPORTES <b>↑</b></div>
+          <div class="dots-grid"></div>
+        </div>
+      </section>
+
+      <section class="ticker" aria-label="Mercados destacados">
+        <div class="ticker-label"><span class="live-dot"></span> EN VIVO</div>
+        <div class="ticker-track">
+          <span>CLP/USD <b class="up">+0.32%</b></span><i></i>
+          <span>APROBACIÓN IA <b class="up">68¢</b></span><i></i>
+          <span>FINAL COPA <b class="down">41¢</b></span><i></i>
+          <span>COBRE 2027 <b class="up">74¢</b></span><i></i>
+          <span>CLP/USD <b class="up">+0.32%</b></span><i></i>
+          <span>APROBACIÓN IA <b class="up">68¢</b></span><i></i>
+        </div>
+        <div class="ticker-end">Sólo puntos virtuales <span>✦</span></div>
+      </section>
+
+      <section class="markets-section" id="mercados">
+        <div class="section-heading">
+          <div><p class="eyebrow">EL PULSO DEL DÍA</p><h2>Mercados en movimiento</h2></div>
+          <a href="#todos" class="view-all">Ver todos <span>→</span></a>
+        </div>
+
+        <div class="categories" role="tablist" aria-label="Categorías">
+          <button class="category active" data-category="Todos">Todos</button>
+          <button class="category" data-category="Chile">Chile</button>
+          <button class="category" data-category="Mundo">Mundo</button>
+          <button class="category" data-category="Tecnología">Tecnología</button>
+          <button class="category" data-category="Deportes">Deportes</button>
+          <button class="category" data-category="Cultura">Cultura</button>
+        </div>
+
+        <div class="market-grid" id="marketGrid">
+          <article class="market-card feature-card" data-category="Chile">
+            <div class="card-art art-election"><span>2026</span><div class="arch arch-one"></div><div class="arch arch-two"></div><div class="arch arch-three"></div></div>
+            <div class="card-content">
+              <div class="card-meta"><span class="badge purple">POLÍTICA</span><span>CIERRA EN 18 DÍAS</span></div>
+              <h3>¿La participación superará el 75% en las próximas elecciones?</h3>
+              <div class="market-progress"><div class="progress-track"><span style="width: 64%"></span></div><div><b>64%</b><span> SÍ</span></div></div>
+              <div class="card-footer"><span><i class="tiny-users"></i> 2.8k predicciones</span><button class="predict-button" data-market="Participación electoral">Predecir <span>→</span></button></div>
+            </div>
+          </article>
+
+          <article class="market-card" data-category="Tecnología">
+            <div class="card-art art-ai"><span class="code-mark">&lt;/&gt;</span><span class="ai-orbit orbit-1"></span><span class="ai-orbit orbit-2"></span><span class="ai-core">AI</span></div>
+            <div class="card-content">
+              <div class="card-meta"><span class="badge cyan">TECNOLOGÍA</span><span>CIERRA EN 42 DÍAS</span></div>
+              <h3>¿Una IA ganará un premio científico importante este año?</h3>
+              <div class="market-progress"><div class="progress-track"><span style="width: 71%"></span></div><div><b>71%</b><span> SÍ</span></div></div>
+              <div class="card-footer"><span><i class="tiny-users"></i> 1.6k predicciones</span><button class="predict-button" data-market="IA y premio científico">Predecir <span>→</span></button></div>
+            </div>
+          </article>
+
+          <article class="market-card" data-category="Deportes">
+            <div class="card-art art-football"><span class="field-line line-v"></span><span class="field-line circle"></span><span class="ball">⚽</span><span class="score">90+3</span></div>
+            <div class="card-content">
+              <div class="card-meta"><span class="badge orange">DEPORTES</span><span>CIERRA EN 6 DÍAS</span></div>
+              <h3>¿Chile llegará a semifinales de la próxima Copa?</h3>
+              <div class="market-progress"><div class="progress-track"><span style="width: 48%"></span></div><div><b>48%</b><span> SÍ</span></div></div>
+              <div class="card-footer"><span><i class="tiny-users"></i> 4.1k predicciones</span><button class="predict-button" data-market="Chile en semifinales">Predecir <span>→</span></button></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="explore-section" id="tendencias">
+        <div class="section-heading"><div><p class="eyebrow">DESCUBRE</p><h2>Todo puede ser una pregunta</h2></div></div>
+        <div class="topic-grid">
+          <button class="topic topic-world"><span class="topic-icon">◎</span><span><b>El mundo</b><small>128 mercados</small></span><i>→</i></button>
+          <button class="topic topic-tech"><span class="topic-icon">⌘</span><span><b>Tecnología</b><small>64 mercados</small></span><i>→</i></button>
+          <button class="topic topic-sport"><span class="topic-icon">◒</span><span><b>Deportes</b><small>96 mercados</small></span><i>→</i></button>
+          <button class="topic topic-culture"><span class="topic-icon">✦</span><span><b>Cultura</b><small>37 mercados</small></span><i>→</i></button>
+        </div>
+      </section>
+
+      <section class="principles">
+        <div class="principles-intro"><p class="eyebrow">PUMA MARKET</p><h2>Opiniones claras.<br /><em>Riesgo cero.</em></h2></div>
+        <div class="principles-list">
+          <article><span>01</span><h3>Sin dinero real</h3><p>Juega sólo con puntos Puma. Acertar te da reputación, no dinero.</p></article>
+          <article><span>02</span><h3>Tu mirada cuenta</h3><p>Descubre lo que piensa la comunidad y construye tu propio criterio.</p></article>
+          <article><span>03</span><h3>Aprende jugando</h3><p>Las mejores predicciones nacen de curiosidad, no de la suerte.</p></article>
+        </div>
+      </section>
+    </main>
+
+    <footer><a class="brand" href="#inicio"><span class="brand-mark">P</span><span>puma<span>market</span></span></a><p>Predicciones sociales para mentes curiosas.</p><p>© 2026 PUMAMARKET</p></footer>
+
+    <div class="modal-backdrop" id="authModal" aria-hidden="true">
+      <section class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button class="close-modal" data-close="authModal" aria-label="Cerrar">×</button>
+        <div class="modal-mark">P</div>
+        <p class="eyebrow">BIENVENIDO A PUMAMARKET</p>
+        <h2 id="authTitle">Tu próxima buena intuición empieza aquí.</h2>
+        <p class="modal-note" id="authNote">Crea una sesión para guardar tus predicciones y recibir <b>1.000 puntos Puma</b>. Son virtuales: no tienen valor monetario.</p>
+        <form id="authForm">
+          <label>Nombre de usuario<input id="userName" type="text" placeholder="ej. puma_curioso" required minlength="2" maxlength="24" autocomplete="username" /></label>
+          <label>Contraseña<input id="userPassword" type="password" placeholder="Mínimo 4 caracteres" required minlength="4" maxlength="72" autocomplete="current-password" /></label>
+          <button class="primary-button full" id="authSubmit" type="submit">Crear acceso <span>→</span></button>
+        </form>
+        <button class="forgot-link" id="showReset" type="button">¿Olvidaste tu contraseña?</button>
+        <section class="reset-request" id="resetRequest" hidden aria-labelledby="resetTitle">
+          <p class="eyebrow">RECUPERAR ACCESO</p>
+          <h3 id="resetTitle">Envía una solicitud</h3>
+          <p>Cuéntanos qué pasó y registraremos tu solicitud de recuperación. No necesitas entregar tu correo aquí.</p>
+          <form id="resetForm">
+            <label>Nombre de usuario<input id="resetUserName" type="text" required minlength="2" maxlength="24" placeholder="ej. puma_curioso" /></label>
+            <label>Mensaje opcional<textarea id="resetMessage" maxlength="240" placeholder="Necesito recuperar el acceso a mi cuenta."></textarea></label>
+            <button class="primary-button full" type="submit">Enviar solicitud <span>→</span></button>
+          </form>
+          <button class="back-to-login" id="backToLogin" type="button">← Volver al acceso</button>
+        </section>
+        <p class="form-terms">Al continuar, aceptas que esto es una experiencia de predicciones sin dinero real.</p>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="predictionModal" aria-hidden="true">
+      <section class="modal prediction-modal" role="dialog" aria-modal="true" aria-labelledby="predictionTitle">
+        <button class="close-modal" data-close="predictionModal" aria-label="Cerrar">×</button>
+        <p class="eyebrow">HACER PREDICCIÓN</p>
+        <h2 id="predictionTitle">¿Cuál es tu lectura?</h2>
+        <p class="modal-note" id="marketQuestion">Mercado seleccionado</p>
+        <div class="choice-row"><button class="choice active" data-choice="Sí">Sí <b>64¢</b></button><button class="choice" data-choice="No">No <b>36¢</b></button></div>
+        <label class="stake-label">Puntos Puma <span id="stakeValue">100</span><input id="stakeRange" type="range" min="25" max="500" value="100" step="25" /></label>
+        <div class="balance-row"><span>Tu saldo</span><b id="balanceLabel">1.000 P</b></div>
+        <button class="primary-button full" id="confirmPrediction">Confirmar predicción <span>→</span></button>
+        <p class="form-terms">Sin compras, sin dinero real. Sólo puntos Puma.</p>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status"><span>✓</span><div><b>Predicción registrada</b><small>Tus puntos Puma se actualizaron.</small></div></div>
+    <div class="search-panel" id="searchPanel"><input id="searchInput" placeholder="Busca un mercado, tema o país..." /><span>ESC para cerrar</span></div>
+    <script src="app.js"></script>
+  </body>
+</html>
