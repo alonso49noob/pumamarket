@@ -207,7 +207,8 @@
         <p class="modal-note">Crea un mercado con respuesta Sí o No. Se guardará en este navegador y podrás hacer tu predicción.</p>
         <form id="createForm">
           <label>Tu pregunta<input id="createQuestion" type="text" required minlength="12" maxlength="140" placeholder="¿Qué crees que va a pasar?" /></label>
-          <div class="form-columns"><label>Categoría<select id="createCategory" required><option value="">Selecciona</option><option>Chile</option><option>Mundo</option><option>Tecnología</option><option>Deportes</option><option>Cultura</option></select></label><label>Fecha de cierre<input id="createDeadline" type="date" required /></label></div>
+          <div class="form-columns"><label>Categoría<select id="createCategory" required><option value="">Selecciona</option><option>Chile</option><option>Mundo</option><option>Tecnología</option><option>Deportes</option><option>Cultura</option></select></label><label>Fecha de cierre<input id="createDeadline" type="date" max="2026-12-31" required aria-describedby="deadlineHint" /></label></div>
+          <p class="modal-note" id="deadlineHint">Fecha máxima de cierre: 31 de diciembre de 2026.</p>
           <label>Criterio de resolución<textarea id="createCriteria" required minlength="15" maxlength="500" placeholder="Explica qué debe ocurrir y qué fuente permitirá comprobarlo."></textarea></label>
           <p class="form-error" id="createError" role="alert"></p>
           <button class="primary-button full" type="submit">Crear mercado <span>→</span></button>

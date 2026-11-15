@@ -267,8 +267,11 @@ $('#createForm').addEventListener('submit', event => {
   const criteria = $('#createCriteria').value.trim();
   const category = $('#createCategory').value;
   const deadline = $('#createDeadline').value;
+  if (deadline > '2026-12-31') {
+    $('#createError').textContent = 'La fecha de cierre no puede superar el 31 de diciembre de 2026.'; return;
+  }
   if (question.length < 12 || criteria.length < 15 || !['Chile','Mundo','Tecnología','Deportes','Cultura'].includes(category) || deadline < tomorrow()) {
-    $('#createError').textContent = 'Completa la pregunta, el criterio y una fecha de cierre a partir de mañana.'; return;
+    $('#createError').textContent = 'Completa la pregunta, el criterio y una fecha de cierre a partir de mañana y hasta el 31 de diciembre de 2026.'; return;
   }
   if (markets.some(item => item.question.toLocaleLowerCase() === question.toLocaleLowerCase())) { $('#createError').textContent = 'Ya creaste un mercado con esta pregunta.'; return; }
   markets.push({ id:crypto.randomUUID(), question, criteria, category, deadline, author:user.name });

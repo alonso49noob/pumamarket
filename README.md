@@ -10,7 +10,7 @@ Abre `index.html` en el navegador o sirve esta carpeta con un servidor HTTP est�
 
 - Acceso local y cierre de sesión; una cuenta por navegador y origen.
 - Dashboard con saldo, puntos comprometidos, historial y mercados creados.
-- Creación de mercados Sí/No con pregunta, categoría, cierre futuro y criterio de resolución.
+- Creación de mercados Sí/No con pregunta, categoría, cierre a partir de mañana y hasta el 31 de diciembre de 2026 (inclusive), y criterio de resolución.
 - Predicciones en pasos de 25 puntos, con validación del saldo disponible.
 - Búsqueda y categorías combinadas; mercados cerrados no admiten nuevas predicciones.
 - Persistencia al recargar mediante `localStorage`.
