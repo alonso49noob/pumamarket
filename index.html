@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="experience.css" />
   </head>
   <body>
     <div class="noise"></div>
@@ -36,6 +37,19 @@
     </header>
 
     <main id="inicio">
+      <section class="market-detail" id="marketDetail" hidden tabindex="-1" aria-labelledby="detailTitle">
+        <a class="detail-back" href="#mercados">← Volver a mercados</a>
+        <div class="detail-layout"><div class="detail-main">
+          <p class="eyebrow" id="detailCategory"></p><h1 id="detailTitle"></h1>
+          <div class="detail-meta"><span id="detailDeadline"></span><span id="detailStatus"></span></div>
+          <div class="chart-heading"><div><span>Probabilidad de Sí</span><strong id="detailProbability">—</strong></div><span class="panel-tag" id="chartSource"></span></div>
+          <div class="chart-wrap"><svg id="marketChart" viewBox="0 0 800 300" role="img" aria-labelledby="chartTitle chartDescription"><title id="chartTitle">Evolución de la probabilidad de Sí</title><desc id="chartDescription"></desc></svg><p id="chartEmpty" hidden>Aún no hay predicciones. Sé la primera persona en aportar tu lectura.</p><output id="chartTooltip" hidden></output></div>
+          <div class="chart-toolbar"><span id="detailVolume"></span><div role="group" aria-label="Periodo del gráfico"><button data-period="1D">1D</button><button data-period="1S">1S</button><button data-period="1M">1M</button><button data-period="TODO" class="active" aria-pressed="true">Todo</button></div></div>
+          <p class="chart-note" id="chartNote"></p>
+          <section class="resolution-panel"><h2>Reglas y contexto</h2><p id="detailCriteria"></p></section>
+          <details class="chart-data"><summary>Ver datos del gráfico</summary><div id="chartTable"></div></details>
+        </div><aside class="detail-order"><p class="eyebrow">TU PRÓXIMA LECTURA</p><h2>¿Qué crees que pasará?</h2><p id="detailOrderQuestion"></p><div class="detail-choices"><button id="detailYes">Sí ↗</button><button id="detailNo">No ↘</button></div><div class="order-balance"><span>Tu saldo disponible</span><b id="detailBalance"></b></div><p class="local-note">Elige tu respuesta para indicar cuántos puntos quieres poner en juego. Sólo puntos virtuales.</p><a href="#mi-cartera" class="view-all">Ver mi actividad →</a></aside></div>
+      </section>
       <section class="hero">
         <div class="hero-copy">
           <p class="eyebrow"><i></i> PREDICCIONES, NO DINERO</p>
@@ -156,7 +170,7 @@
       </section>
     </main>
 
-    <footer><a class="brand" href="#inicio"><span class="brand-mark">P</span><span>puma<span>market</span></span></a><p>Predicciones sociales para mentes curiosas.</p><p>© 2026 PUMAMARKET</p></footer>
+    <footer><a class="brand" href="#inicio"><span class="brand-mark">P</span><span>puma<span>market</span></span></a><p>Predicciones sociales para mentes curiosas.</p><button id="themeToggle" class="theme-toggle" aria-pressed="false">☾ Modo oscuro</button><p>© 2026 PUMAMARKET</p></footer>
 
     <div class="modal-backdrop" id="authModal" aria-hidden="true">
       <section class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
@@ -167,9 +181,12 @@
         <p class="modal-note" id="authNote">Crea una sesión para guardar tus predicciones y recibir <b>1.000 puntos Puma</b>. Son virtuales: no tienen valor monetario.</p>
         <form id="authForm">
           <label>Nombre de usuario<input id="userName" type="text" placeholder="ej. puma_curioso" required minlength="2" maxlength="24" autocomplete="username" /></label>
+          <label id="phoneLabel">Número de teléfono<input id="userPhone" type="tel" placeholder="+56 9 1234 5678" autocomplete="tel" maxlength="30" aria-describedby="phoneHint" /><small id="phoneHint">Incluye el código de país (+). Un teléfono por cuenta en este navegador. Sin verificación por SMS.</small></label>
           <label>Contraseña<input id="userPassword" type="password" placeholder="Mínimo 4 caracteres" required minlength="4" maxlength="72" autocomplete="current-password" /></label>
           <button class="primary-button full" id="authSubmit" type="submit">Crear acceso <span>→</span></button>
+          <p class="form-error" id="authError" role="alert"></p>
         </form>
+        <button class="text-button" id="authModeSwitch" type="button">Ya tengo cuenta · Iniciar sesión</button>
         <button class="forgot-link" id="showReset" type="button">¿Olvidaste tu contraseña?</button>
         <section class="reset-request" id="resetRequest" hidden aria-labelledby="resetTitle">
           <p class="eyebrow">RECUPERAR ACCESO</p>
@@ -186,6 +203,7 @@
       </section>
     </div>
 
+    <div class="modal-backdrop" id="accountModal" aria-hidden="true"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="accountTitle"><button class="close-modal" data-close="accountModal" aria-label="Cerrar">×</button><p class="eyebrow">MI CUENTA</p><h2 id="accountTitle">Tu perfil Puma</h2><p id="accountName"></p><form id="accountPhoneForm"><label>Teléfono asociado<input id="accountPhone" type="tel" autocomplete="tel" placeholder="+56 9 1234 5678" required maxlength="30" /></label><p class="modal-note">Incluye el código de país. El número no se verifica por SMS y debe ser único entre las cuentas de este navegador.</p><p id="accountError" class="form-error" role="alert"></p><button class="primary-button full" type="submit">Guardar teléfono</button></form><button class="logout-account" id="accountLogout">Cerrar sesión ↗</button></section></div>
     <div class="modal-backdrop" id="predictionModal" aria-hidden="true">
       <section class="modal prediction-modal" role="dialog" aria-modal="true" aria-labelledby="predictionTitle">
         <button class="close-modal" data-close="predictionModal" aria-label="Cerrar">×</button>
@@ -217,6 +235,7 @@
     </div>
     <div class="toast" id="toast" role="status"><span>✓</span><div><b>Predicción registrada</b><small>Tus puntos Puma se actualizaron.</small></div></div>
     <div class="search-panel" id="searchPanel"><input id="searchInput" placeholder="Busca un mercado, tema o país..." /><span>ESC para cerrar</span></div>
+    <script src="domain.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
