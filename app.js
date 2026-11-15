@@ -29,6 +29,8 @@ let modalTrigger = null;
 const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 const points = value => `${Number(value).toLocaleString('es-CL')} P`;
 const dateLabel = value => new Date(value).toLocaleDateString('es-CL', { day:'numeric', month:'short', year:'numeric' });
+const isClosed = market => Boolean(market?.resolution) || new Date(`${market?.deadline}T23:59:59`) <= new Date();
+const outcomeLabel = market => market.resolution ? `Resuelto · ${market.resolution.outcome}` : null;
 function saveAccount() {
   if (!account) return;
   accounts = accounts.map(item => item.id === account.id ? account : item);
@@ -183,7 +185,7 @@ function requireUser(action) {
 function openPrediction(card, choice = 'Sí') {
   requireUser(() => {
     const market = detailData(card);
-    if (market && new Date(`${market.deadline}T23:59:59`) <= new Date()) { showToast('Mercado cerrado', 'La fecha de cierre de esta pregunta ya pasó.'); return; }
+    if (market && isClosed(market)) { showToast('Mercado cerrado', market.resolution ? 'Esta pregunta ya tiene resultado.' : 'La fecha de cierre de esta pregunta ya pasó.'); return; }
     selectedMarket = $('h3', card).textContent;
     selectedMarketId = card.dataset.id;
     $('#marketQuestion').textContent = selectedMarket;
@@ -220,13 +222,15 @@ $('#confirmPrediction').addEventListener('click', () => {
   if (!user || !selectedMarket || !Number.isFinite(stake) || stake < 25 || stake % 25 !== 0) return;
   const selectedCard = $$('.market-card').find(card => card.dataset.id === selectedMarketId);
   const market = selectedCard ? detailData(selectedCard) : null;
-  if (market && new Date(`${market.deadline}T23:59:59`) <= new Date()) { toggleModal(predictionModal, false); showToast('Mercado cerrado', 'Esta pregunta ya no admite predicciones.'); return; }
+  if (market && isClosed(market)) { toggleModal(predictionModal, false); showToast('Mercado cerrado', 'Esta pregunta ya no admite predicciones.'); return; }
   if (stake > balance) { showToast('Puntos insuficientes', 'Elige una cantidad menor para tu predicción.'); return; }
   balance -= stake;
   account.balance = balance;
   account.predictions.push({ marketId:selectedMarketId, market: selectedMarket, choice: selectedChoice, stake, date: new Date().toISOString() });
   saveAccount();
+  renderMarkets();
   renderDashboard();
+  renderPulse();
   if (currentDetail) renderDetail();
   toggleModal(predictionModal, false);
   showToast('Predicción registrada', `${selectedChoice} · ${stake} puntos Puma en juego.`);
@@ -263,18 +267,24 @@ document.addEventListener('keydown', event => {
   }
 });
 
+function resultLabel(item) {
+  if (item.result === 'won') return `Acertaste · +${points(item.payout)}`;
+  if (item.result === 'lost') return 'No acertaste · puntos perdidos';
+  return 'Registrada · sin resultado aún';
+}
+
 function renderDashboard() {
   const predictions = user ? myPredictions() : [];
   $('#dashboardTitle').textContent = user ? `Hola, ${user.name}. Esta es tu mirada.` : 'Tu próxima idea cuenta.';
   $('#dashboardSubtitle').textContent = user ? 'Tus puntos, tus preguntas y cada decisión, en un solo lugar.' : 'Inicia sesión para guardar tus predicciones y seguir tu actividad.';
   $('#logoutButton').hidden = !user;
   $('#statBalance').textContent = user ? points(balance) : '—';
-  $('#statStaked').textContent = user ? points(predictions.reduce((sum, item) => sum + item.stake, 0)) : '—';
+  $('#statStaked').textContent = user ? points(predictions.filter(item => !item.result).reduce((sum, item) => sum + item.stake, 0)) : '—';
   $('#statPredictions').textContent = user ? predictions.length : '—';
   $('#statCreated').textContent = user ? ownMarkets().length : '—';
-  $('#predictionHistory').innerHTML = predictions.length ? `<div class="history-scroll"><table><thead><tr><th>Mercado</th><th>Tu lectura</th><th>Puntos</th><th>Fecha</th></tr></thead><tbody>${[...predictions].reverse().map(item => `<tr><td>${escapeHTML(item.market)}<small>Registrada · sin resultado aún</small></td><td><span class="choice-pill ${item.choice === 'No' ? 'negative' : ''}">${escapeHTML(item.choice)}</span></td><td>${points(item.stake)}</td><td>${dateLabel(item.date)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty-state"><span class="empty-icon">↗</span><h4>${user ? 'Tu primera lectura está por llegar.' : 'Una mirada propia empieza aquí.'}</h4><p>${user ? 'Explora una pregunta y elige Sí o No. Aquí verás cada predicción.' : 'Crea tu acceso local y empieza con 1.000 puntos Puma.'}</p><button class="text-button" id="dashboardStart">${user ? 'Explorar mercados →' : 'Comenzar →'}</button></div>`;
+  $('#predictionHistory').innerHTML = predictions.length ? `<div class="history-scroll"><table><thead><tr><th>Mercado</th><th>Tu lectura</th><th>Puntos</th><th>Fecha</th></tr></thead><tbody>${[...predictions].reverse().map(item => `<tr><td>${escapeHTML(item.market)}<small class="${item.result ? `result-${item.result}` : ''}">${resultLabel(item)}</small></td><td><span class="choice-pill ${item.choice === 'No' ? 'negative' : ''}">${escapeHTML(item.choice)}</span></td><td>${points(item.stake)}</td><td>${dateLabel(item.date)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty-state"><span class="empty-icon">↗</span><h4>${user ? 'Tu primera lectura está por llegar.' : 'Una mirada propia empieza aquí.'}</h4><p>${user ? 'Explora una pregunta y elige Sí o No. Aquí verás cada predicción.' : 'Crea tu acceso local y empieza con 1.000 puntos Puma.'}</p><button class="text-button" id="dashboardStart">${user ? 'Explorar mercados →' : 'Comenzar →'}</button></div>`;
   $('#dashboardStart')?.addEventListener('click', () => user ? $('#mercados').scrollIntoView({ behavior:'smooth' }) : signInButton.click());
-  $('#createdMarkets').innerHTML = user && ownMarkets().length ? [...ownMarkets()].reverse().map(item => `<a class="created-item" href="#mercado/${escapeHTML(item.id)}" data-created="${escapeHTML(item.id)}"><span>${escapeHTML(item.category)} · ${dateLabel(`${item.deadline}T12:00:00`)}</span><b>${escapeHTML(item.question)}</b><small>${new Date(`${item.deadline}T23:59:59`) > new Date() ? 'Abierto para predicciones' : 'Cerrado'} ↗</small></a>`).join('') : '<div class="created-empty"><p>Las buenas preguntas empiezan contigo.</p><small>Tus mercados aparecerán aquí cuando crees el primero.</small></div>';
+  $('#createdMarkets').innerHTML = user && ownMarkets().length ? [...ownMarkets()].reverse().map(item => `<a class="created-item" href="#mercado/${escapeHTML(item.id)}" data-created="${escapeHTML(item.id)}"><span>${escapeHTML(item.category)} · ${dateLabel(`${item.deadline}T12:00:00`)}</span><b>${escapeHTML(item.question)}</b><small>${outcomeLabel(item) ?? (isClosed(item) ? 'Cerrado · pendiente de resolver' : 'Abierto para predicciones')} ↗</small></a>`).join('') : '<div class="created-empty"><p>Las buenas preguntas empiezan contigo.</p><small>Tus mercados aparecerán aquí cuando crees el primero.</small></div>';
 }
 
 function filterMarkets() {
@@ -291,10 +301,17 @@ function renderMarkets() {
     card.className = 'market-card user-market';
     card.dataset.category = item.category;
     card.dataset.id = item.id;
-    const closed = new Date(`${item.deadline}T23:59:59`) <= new Date();
-    card.innerHTML = `<div class="card-art art-community"><span>LA COMUNIDAD PREGUNTA</span><b>¿Y si…?</b><i>↗</i></div><div class="card-content"><div class="card-meta"><span class="badge cyan">${escapeHTML(item.category)}</span><span>${closed ? 'CERRADO' : `CIERRA ${dateLabel(`${item.deadline}T12:00:00`)}`}</span></div><h3>${escapeHTML(item.question)}</h3><p class="market-criteria">${escapeHTML(item.criteria)}</p><div class="card-footer"><span>Creado por ${escapeHTML(item.author)}</span><button class="predict-button" ${closed ? 'disabled' : ''}>${closed ? 'Cerrado' : 'Predecir →'}</button></div></div>`;
+    const closed = isClosed(item);
+    const series = PumaDomain.series(allPredictions().filter(entry => PumaDomain.matches(entry, item)));
+    const probability = series.at(-1)?.value;
+    const status = item.resolution ? `RESUELTO · ${item.resolution.outcome.toUpperCase()}` : closed ? 'CERRADO' : `CIERRA ${dateLabel(`${item.deadline}T12:00:00`)}`;
+    const progress = probability === undefined ? '<p class="market-criteria">Sin predicciones todavía.</p>' : `<div class="market-progress"><div class="progress-track"><span style="width:${probability}%"></span></div><div><b>${probability}%</b><span> SÍ</span></div></div>`;
+    card.classList.toggle('is-resolved', Boolean(item.resolution));
+    card.innerHTML = `<div class="card-art art-community"><span>LA COMUNIDAD PREGUNTA</span><b>¿Y si…?</b><i>↗</i></div><div class="card-content"><div class="card-meta"><span class="badge cyan">${escapeHTML(item.category)}</span><span>${status}</span></div><h3>${escapeHTML(item.question)}</h3>${progress}<div class="card-footer"><span>Creado por ${escapeHTML(item.author)}</span><button class="predict-button" ${closed ? 'disabled' : ''}>${item.resolution ? 'Resuelto' : closed ? 'Cerrado' : 'Predecir →'}</button></div></div>`;
     $('#marketGrid').prepend(card);
   });
+  // Cards are rebuilt, so keep an open detail view pointing at the live element.
+  if (currentDetail) currentDetail = $$('.market-card').find(card => card.dataset.id === currentDetail.dataset.id) ?? currentDetail;
   filterMarkets();
   $$('.market-card').forEach((card, index) => {
     if (!card.dataset.id) card.dataset.id = `demo-${index}`;
@@ -380,6 +397,47 @@ function detailData(card) {
     criteria:'Mercado de demostración. Esta pregunta y su historial son ilustrativos; no existe una fuente oficial de resolución conectada. Las predicciones usan únicamente puntos virtuales.', demo:true
   };
 }
+function allPredictions() { return accounts.flatMap(entry => entry.predictions ?? []); }
+function marketSeries(card) {
+  const item = detailData(card);
+  const predictions = allPredictions().filter(entry => PumaDomain.matches(entry, item));
+  const target = Number(card.dataset.seed) || 50;
+  const seedValues = [target-18,target-12,target-15,target-4,target-8,target+2,target-3,target+5,target-4,target-1,target-6,target+1,target-2,target];
+  const seed = item.demo ? seedValues.map((value,index) => ({date:`2026-11-${String(index+1).padStart(2,'0')}T12:00:00`,value:Math.max(1,Math.min(99,value))})) : [];
+  return { item, predictions, all:PumaDomain.series(predictions,seed) };
+}
+function resolveMarket(outcome) {
+  const item = currentDetail && markets.find(entry => entry.id === currentDetail.dataset.id);
+  if (!PumaDomain.canResolve(item, user?.id)) return;
+  if (!window.confirm(`¿Confirmas que la respuesta correcta es "${outcome}"? Se repartirán los puntos y no se puede deshacer.`)) return;
+  // Re-read so predictions made in other tabs are settled too.
+  accounts = PumaDomain.settle(storage.get('puma-accounts', []), item, outcome);
+  storage.set('puma-accounts', accounts);
+  item.resolution = { outcome, resolvedAt:new Date().toISOString() };
+  storage.set('puma-markets', markets);
+  account = accounts.find(entry => entry.id === user.id) ?? null;
+  balance = account?.balance ?? balance;
+  const mine = myPredictions().filter(entry => PumaDomain.matches(entry, item));
+  const won = mine.reduce((sum, entry) => sum + (entry.payout ?? 0), 0);
+  renderMarkets(); renderDashboard(); renderPulse();
+  currentDetail = $$('.market-card').find(card => card.dataset.id === item.id);
+  renderDetail();
+  showToast(`Mercado resuelto: ${outcome}`, mine.length ? `Recibiste ${points(won)} por tus predicciones.` : 'Los puntos se repartieron entre quienes acertaron.');
+}
+function renderPulse() {
+  const { staked, predictions } = PumaDomain.activity(accounts);
+  $('#pulseStaked').textContent = points(staked);
+  $('#pulsePredictions').textContent = predictions.toLocaleString('es-CL');
+  const items = $$('.market-card').map(card => {
+    const { item, all } = marketSeries(card);
+    const label = item.question.replace(/^¿|\?$/g, '');
+    const short = label.length > 34 ? `${label.slice(0, 32).trim()}…` : label;
+    const last = all.at(-1)?.value, previous = all.at(-2)?.value;
+    const value = item.resolution ? `<b>${escapeHTML(item.resolution.outcome.toUpperCase())}</b>` : last === undefined ? '<b>SIN DATOS</b>' : `<b class="${previous !== undefined && last < previous ? 'down' : 'up'}">${last}% SÍ</b>`;
+    return `<a href="#mercado/${escapeHTML(item.id)}">${escapeHTML(short.toLocaleUpperCase('es-CL'))} ${value}</a><i></i>`;
+  }).join('');
+  $('#tickerTrack').innerHTML = items;
+}
 function renderDetail() {
   if (!currentDetail) return;
   const item = detailData(currentDetail);
@@ -387,16 +445,13 @@ function renderDetail() {
   $('#detailOrderQuestion').textContent = item.question;
   $('#detailCategory').textContent = `${item.category} / ${item.demo ? 'MERCADO DE EJEMPLO' : 'COMUNIDAD PUMA'}`;
   $('#detailDeadline').textContent = `Cierre · ${dateLabel(`${item.deadline}T12:00:00`)}`;
-  const closed = new Date(`${item.deadline}T23:59:59`) <= new Date();
-  $('#detailStatus').textContent = closed ? 'Cerrado' : 'Abierto';
+  const closed = isClosed(item);
+  $('#detailStatus').textContent = outcomeLabel(item) ?? (closed ? 'Cerrado' : 'Abierto');
   $('#detailYes').disabled = $('#detailNo').disabled = closed;
+  $('#resolvePanel').hidden = !PumaDomain.canResolve(item, user?.id);
   $('#detailCriteria').textContent = item.criteria;
   $('#detailBalance').textContent = user ? formatBalance() : 'Inicia sesión';
-  const predictions = accounts.flatMap(entry => entry.predictions ?? []).filter(entry => entry.marketId ? entry.marketId === item.id : entry.market === item.question);
-  const target = Number($('.market-progress b',currentDetail)?.textContent.replace('%','')) || 50;
-  const seedValues = [target-18,target-12,target-15,target-4,target-8,target+2,target-3,target+5,target-4,target-1,target-6,target+1,target-2,target];
-  const seed = item.demo ? seedValues.map((value,index) => ({date:`2026-11-${String(index+1).padStart(2,'0')}T12:00:00`,value:Math.max(1,Math.min(99,value))})) : [];
-  const all = PumaDomain.series(predictions,seed);
+  const { predictions, all } = marketSeries(currentDetail);
   $('#detailProbability').textContent = all.length ? `${all[all.length-1].value}%` : '—';
   $('#detailVolume').textContent = `${points(predictions.reduce((sum,entry) => sum+entry.stake,0))} en juego · ${predictions.length} ${predictions.length === 1 ? 'predicción local' : 'predicciones locales'}`;
   $('#chartSource').textContent = item.demo ? 'DEMO + ACTIVIDAD LOCAL' : 'ACTIVIDAD LOCAL';
@@ -460,7 +515,10 @@ function applyTheme(theme) {
 }
 $('#themeToggle').addEventListener('click',()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';storage.set('puma-theme',theme);applyTheme(theme);});
 applyTheme(storage.get('puma-theme','light'));
-$$('.market-card').forEach((card,index)=>card.dataset.id=`demo-${index}`);
+$$('.market-card').forEach((card,index)=>{ card.dataset.id=`demo-${index}`; card.dataset.seed=$('.market-progress b',card)?.textContent.replace('%','') ?? ''; });
+$('#resolveYes').addEventListener('click',()=>resolveMarket('Sí'));
+$('#resolveNo').addEventListener('click',()=>resolveMarket('No'));
 renderMarkets();
 setSignedInUI();
+renderPulse();
 route();

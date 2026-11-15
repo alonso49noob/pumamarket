@@ -34,3 +34,64 @@ test('new markets have no fabricated probability history', () => {
   assert.deepEqual(rules.series([]),[]);
   assert.deepEqual(rules.period([],'1D'),[]);
 });
+
+const market = { id:'m1', question:'¿Lloverá mañana?', ownerId:'ana' };
+const accountsWithBets = () => [
+  { id:'ana', balance:900, predictions:[{ marketId:'m1', choice:'Sí', stake:100, date:'2026-11-10T12:00:00Z' }] },
+  { id:'beto', balance:700, predictions:[{ marketId:'m1', choice:'No', stake:300, date:'2026-11-11T12:00:00Z' }, { marketId:'otro', choice:'Sí', stake:25, date:'2026-11-11T12:00:00Z' }] }
+];
+
+test('pool sums stakes per side', () => {
+  const all = accountsWithBets().flatMap(a => a.predictions).filter(p => rules.matches(p, market));
+  assert.deepEqual(rules.pool(all), { yes:100, no:300, total:400 });
+});
+test('only the creator can resolve, once, and never demo markets', () => {
+  assert.equal(rules.canResolve(market, 'ana'), true);
+  assert.equal(rules.canResolve(market, 'beto'), false);
+  assert.equal(rules.canResolve({ ...market, resolution:{ outcome:'Sí' } }, 'ana'), false);
+  assert.equal(rules.canResolve({ ...market, demo:true }, 'ana'), false);
+});
+test('losers get nothing and winners get at least their stake back', () => {
+  const pool = { yes:100, no:300, total:400 };
+  assert.equal(rules.payout({ choice:'No', stake:300 }, 'Sí', pool), 0);
+  const won = rules.payout({ choice:'Sí', stake:100 }, 'Sí', pool);
+  assert.ok(Number.isInteger(won) && won >= 100);
+});
+test('settle marks results, credits winners and leaves other markets untouched', () => {
+  const [ana, beto] = rules.settle(accountsWithBets(), market, 'Sí', '2026-11-14T00:00:00Z');
+  assert.equal(ana.predictions[0].result, 'won');
+  assert.equal(ana.balance, 900 + ana.predictions[0].payout);
+  assert.equal(beto.predictions[0].result, 'lost');
+  assert.equal(beto.predictions[0].payout, 0);
+  assert.equal(beto.balance, 700);
+  assert.equal(beto.predictions[1].result, undefined);
+});
+test('settling twice never pays twice', () => {
+  const once = rules.settle(accountsWithBets(), market, 'Sí');
+  const twice = rules.settle(once, market, 'Sí');
+  assert.deepEqual(twice.map(a => a.balance), once.map(a => a.balance));
+});
+test('activity counts only unresolved predictions', () => {
+  assert.deepEqual(rules.activity(accountsWithBets()), { staked:425, predictions:3 });
+  assert.deepEqual(rules.activity(rules.settle(accountsWithBets(), market, 'No')), { staked:25, predictions:1 });
+});
+
+test('shared pool: winners split the whole pool by stake', () => {
+  const pool = { yes:100, no:300, total:400 };
+  assert.equal(rules.payout({ choice:'Sí', stake:100 }, 'Sí', pool), 400);
+  const split = { yes:300, no:100, total:400 };
+  assert.equal(rules.payout({ choice:'Sí', stake:100 }, 'Sí', split), 133);
+  assert.equal(rules.payout({ choice:'Sí', stake:200 }, 'Sí', split), 266);
+});
+test('shared pool never pays out more than was staked', () => {
+  const accounts = [
+    { id:'a', balance:0, predictions:[{ marketId:'m1', choice:'Sí', stake:100 }] },
+    { id:'b', balance:0, predictions:[{ marketId:'m1', choice:'Sí', stake:200 }] },
+    { id:'c', balance:0, predictions:[{ marketId:'m1', choice:'No', stake:100 }] }
+  ];
+  const paid = rules.settle(accounts, market, 'Sí').reduce((sum, a) => sum + a.balance, 0);
+  assert.ok(paid <= 400 && paid >= 398, `paid ${paid}`);
+});
+test('a lone winner with no opponents just gets the stake back', () => {
+  assert.equal(rules.payout({ choice:'No', stake:75 }, 'No', { yes:0, no:75, total:75 }), 75);
+});

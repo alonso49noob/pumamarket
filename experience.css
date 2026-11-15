@@ -87,3 +87,19 @@
 [data-theme=dark] .chart-heading strong { color:#63aaff; }
 @media(max-width:1000px) { .detail-layout { grid-template-columns:minmax(0,1fr) 270px; gap:25px; }.market-detail { padding-inline:24px; }.detail-order { padding:22px; } }
 @media(max-width:760px) { .detail-layout { grid-template-columns:1fr; }.detail-order { position:static; }.market-detail { padding:26px 20px 45px; }.chart-toolbar { flex-wrap:wrap; }.chart-toolbar>div { margin-left:auto; }.market-detail h1 { font-size:29px; }.chart-heading strong { font-size:30px; }.detail-meta { margin-bottom:26px; } footer { gap:18px; } }
+
+/* Market resolution and live pulse */
+.ticker-track a { color:inherit; text-decoration:none; }
+.ticker-track a:hover { color:var(--ink); }
+.resolve-panel { margin-top:24px; padding-top:20px; border-top:1px solid var(--line); }
+.resolve-panel h3 { font-size:17px; margin:6px 0 8px; }
+.resolve-panel p:not(.eyebrow) { font-size:11px; line-height:1.6; color:var(--muted); }
+.resolve-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+.resolve-actions button { border:1px solid var(--line); border-radius:7px; padding:11px 8px; background:transparent; color:var(--ink); font:700 12px Manrope,sans-serif; cursor:pointer; }
+.resolve-actions button:hover,.resolve-actions button:focus-visible { border-color:var(--ink); }
+td small.result-won { color:#2e8a57; font-weight:700; }
+td small.result-lost { color:#b45f43; }
+.market-card.is-resolved .card-art { filter:grayscale(.7); opacity:.75; }
+[data-theme=dark] td small.result-won { color:#8fdca2; }
+[data-theme=dark] td small.result-lost { color:#ffb49c; }
+[data-theme=dark] .ticker-track a:hover { color:#f1f5ef; }
