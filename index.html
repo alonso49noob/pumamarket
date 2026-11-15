@@ -23,10 +23,11 @@
       <nav class="main-nav" aria-label="Navegación principal">
         <a class="active" href="#inicio">Explorar</a>
         <a href="#tendencias">Tendencias</a>
-        <a href="#mi-cartera">Mi actividad</a>
+        <a href="#mi-cartera">Mi dashboard</a>
       </nav>
 
       <div class="header-actions">
+        <button class="create-button" data-create>＋ Crear predicción</button>
         <button class="icon-button search-toggle" aria-label="Buscar mercados">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.2 4.2"></path></svg>
         </button>
@@ -74,13 +75,24 @@
         <div class="ticker-end">Sólo puntos virtuales <span>✦</span></div>
       </section>
 
+      <section class="dashboard" id="mi-cartera" aria-labelledby="dashboardTitle">
+        <div class="dashboard-top"><div><p class="eyebrow">TU ESPACIO PUMA</p><h2 id="dashboardTitle">Tu próxima idea cuenta.</h2><p id="dashboardSubtitle">Inicia sesión para guardar tus predicciones y seguir tu actividad.</p></div><div class="dashboard-actions"><button class="primary-button" data-create>＋ Crear predicción</button><button class="text-button" id="logoutButton" hidden>Cerrar sesión ↗</button></div></div>
+        <div class="stats-grid">
+          <article class="stat-card balance-stat"><span>Saldo disponible</span><strong id="statBalance">—</strong><small>Puntos Puma · sin valor monetario</small></article>
+          <article class="stat-card"><span>Puntos en juego</span><strong id="statStaked">—</strong><small>En tus predicciones registradas</small></article>
+          <article class="stat-card"><span>Predicciones realizadas</span><strong id="statPredictions">—</strong><small>Una idea, una decisión</small></article>
+          <article class="stat-card"><span>Mercados creados</span><strong id="statCreated">—</strong><small>Preguntas que abren conversación</small></article>
+        </div>
+        <div class="dashboard-panels"><section class="activity-panel"><div class="panel-heading"><h3>Mis predicciones</h3><span class="panel-tag">MI ACTIVIDAD</span></div><div id="predictionHistory"></div></section><aside class="created-panel"><div class="panel-heading"><h3>Mis mercados</h3><span aria-hidden="true">↗</span></div><div id="createdMarkets"></div><p class="local-note">Tu cuenta, puntos y actividad se guardan sólo en este navegador. Los mercados creados son locales.</p></aside></div>
+      </section>
+
       <section class="markets-section" id="mercados">
         <div class="section-heading">
           <div><p class="eyebrow">EL PULSO DEL DÍA</p><h2>Mercados en movimiento</h2></div>
-          <a href="#todos" class="view-all">Ver todos <span>→</span></a>
+          <a href="#mercados" class="view-all" id="viewAll">Ver todos <span>→</span></a>
         </div>
 
-        <div class="categories" role="tablist" aria-label="Categorías">
+        <div class="categories" role="group" aria-label="Categorías">
           <button class="category active" data-category="Todos">Todos</button>
           <button class="category" data-category="Chile">Chile</button>
           <button class="category" data-category="Mundo">Mundo</button>
@@ -120,6 +132,8 @@
             </div>
           </article>
         </div>
+        <p class="market-empty" id="marketEmpty" hidden>No hay mercados que coincidan. Prueba otra categoría o búsqueda.</p>
+        <p class="demo-note">Mercados de ejemplo: los porcentajes y la actividad de la comunidad son ilustrativos.</p>
       </section>
 
       <section class="explore-section" id="tendencias">
@@ -178,7 +192,7 @@
         <p class="eyebrow">HACER PREDICCIÓN</p>
         <h2 id="predictionTitle">¿Cuál es tu lectura?</h2>
         <p class="modal-note" id="marketQuestion">Mercado seleccionado</p>
-        <div class="choice-row"><button class="choice active" data-choice="Sí">Sí <b>64¢</b></button><button class="choice" data-choice="No">No <b>36¢</b></button></div>
+        <div class="choice-row"><button class="choice active" data-choice="Sí" aria-pressed="true">Sí <b>Mi lectura</b></button><button class="choice" data-choice="No" aria-pressed="false">No <b>Mi lectura</b></button></div>
         <label class="stake-label">Puntos Puma <span id="stakeValue">100</span><input id="stakeRange" type="range" min="25" max="500" value="100" step="25" /></label>
         <div class="balance-row"><span>Tu saldo</span><b id="balanceLabel">1.000 P</b></div>
         <button class="primary-button full" id="confirmPrediction">Confirmar predicción <span>→</span></button>
@@ -186,6 +200,20 @@
       </section>
     </div>
 
+    <div class="modal-backdrop" id="createModal" aria-hidden="true">
+      <section class="modal create-modal" role="dialog" aria-modal="true" aria-labelledby="createTitle">
+        <button class="close-modal" data-close="createModal" aria-label="Cerrar">×</button>
+        <p class="eyebrow">DE LA CURIOSIDAD A LA CONVERSACIÓN</p><h2 id="createTitle">Abre una nueva pregunta.</h2>
+        <p class="modal-note">Crea un mercado con respuesta Sí o No. Se guardará en este navegador y podrás hacer tu predicción.</p>
+        <form id="createForm">
+          <label>Tu pregunta<input id="createQuestion" type="text" required minlength="12" maxlength="140" placeholder="¿Qué crees que va a pasar?" /></label>
+          <div class="form-columns"><label>Categoría<select id="createCategory" required><option value="">Selecciona</option><option>Chile</option><option>Mundo</option><option>Tecnología</option><option>Deportes</option><option>Cultura</option></select></label><label>Fecha de cierre<input id="createDeadline" type="date" required /></label></div>
+          <label>Criterio de resolución<textarea id="createCriteria" required minlength="15" maxlength="500" placeholder="Explica qué debe ocurrir y qué fuente permitirá comprobarlo."></textarea></label>
+          <p class="form-error" id="createError" role="alert"></p>
+          <button class="primary-button full" type="submit">Crear mercado <span>→</span></button>
+        </form>
+      </section>
+    </div>
     <div class="toast" id="toast" role="status"><span>✓</span><div><b>Predicción registrada</b><small>Tus puntos Puma se actualizaron.</small></div></div>
     <div class="search-panel" id="searchPanel"><input id="searchInput" placeholder="Busca un mercado, tema o país..." /><span>ESC para cerrar</span></div>
     <script src="app.js"></script>
