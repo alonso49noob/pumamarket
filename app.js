@@ -11,9 +11,23 @@ let account = storage.get('puma-account', null);
 let accounts = storage.get('puma-accounts', []);
 // Import the original single-account prototype once, preserving its activity.
 if (!accounts.length && account) {
-  accounts = [{ ...account, id:crypto.randomUUID(), balance:storage.get('puma-balance', 1000), predictions:storage.get('puma-predictions', []) }];
+  accounts = [{ ...account, id:crypto.randomUUID(), balance:storage.get('puma-balance', PumaDomain.STARTING_POINTS), predictions:storage.get('puma-predictions', []) }];
   storage.set('puma-accounts', accounts);
 }
+const randomBytes = size => crypto.getRandomValues(new Uint8Array(size));
+// Accounts created before wallets existed get their address once.
+if (accounts.some(item => !PumaDomain.normalizeWallet(item.wallet))) {
+  accounts = PumaDomain.assignWallets(accounts, randomBytes);
+  storage.set('puma-accounts', accounts);
+}
+// Supply log: one entry each time the points in circulation change.
+function recordSupply(reason) {
+  const log = storage.get('puma-supply', []);
+  const next = PumaDomain.logSupply(log, PumaDomain.circulating(storage.get('puma-accounts', [])), new Date().toISOString(), log.length ? reason : 'inicio');
+  if (next !== log) storage.set('puma-supply', next);
+  return next;
+}
+recordSupply('ajuste');
 account = user ? accounts.find(item => item.id === user.id || (!user.id && item.name === user.name)) : null;
 user = account ? { id:account.id, name:account.name } : null;
 storage.set('puma-user', user);
@@ -21,7 +35,7 @@ let authMode = accounts.length ? 'login' : 'register';
 let selectedMarketId = '';
 let selectedMarket = '';
 let selectedChoice = 'Sí';
-let balance = account?.balance ?? 1000;
+let balance = account?.balance ?? PumaDomain.STARTING_POINTS;
 let markets = storage.get('puma-markets', []);
 let pendingAction = null;
 let activeCategory = 'Todos';
@@ -75,7 +89,7 @@ function configureAuth() {
   $('#authTitle').textContent = isReturning ? 'Qué bueno verte de nuevo.' : 'Tu próxima buena intuición empieza aquí.';
   $('#authNote').innerHTML = isReturning
     ? 'Ingresa tus datos para volver a tus mercados y puntos Puma.'
-    : 'Crea una sesión para guardar tus predicciones y recibir <b>1.000 puntos Puma</b>. Son virtuales: no tienen valor monetario.';
+    : `Crea una sesión para guardar tus predicciones y recibir <b>${PumaDomain.STARTING_POINTS.toLocaleString('es-CL')} puntos Puma</b>. Son virtuales: no tienen valor monetario.`;
   $('#authSubmit').innerHTML = `${isReturning ? 'Iniciar sesión' : 'Crear acceso'} <span>→</span>`;
   $('#userName').value = '';
   $('#userName').readOnly = false;
@@ -132,9 +146,10 @@ $('#authForm').addEventListener('submit', async event => {
       const error = PumaDomain.phoneError(phoneValue, accounts);
       if (error) { $('#authError').textContent = error; return; }
       if (matched) { $('#authError').textContent = 'Este nombre de usuario ya existe. Elige otro.'; return; }
-      matched = { id:crypto.randomUUID(), name, phone:PumaDomain.normalizePhone(phoneValue), passwordHash:hash, balance:1000, predictions:[] };
+      matched = { id:crypto.randomUUID(), name, phone:PumaDomain.normalizePhone(phoneValue), passwordHash:hash, balance:PumaDomain.STARTING_POINTS, predictions:[], wallet:PumaDomain.newWallet(accounts, randomBytes), transfers:[] };
       accounts.push(matched);
       storage.set('puma-accounts', accounts);
+      recordSupply('nueva cuenta');
     }
     account = matched;
   } finally {
@@ -282,8 +297,10 @@ function renderDashboard() {
   $('#statStaked').textContent = user ? points(predictions.filter(item => !item.result).reduce((sum, item) => sum + item.stake, 0)) : '—';
   $('#statPredictions').textContent = user ? predictions.length : '—';
   $('#statCreated').textContent = user ? ownMarkets().length : '—';
-  $('#predictionHistory').innerHTML = predictions.length ? `<div class="history-scroll"><table><thead><tr><th>Mercado</th><th>Tu lectura</th><th>Puntos</th><th>Fecha</th></tr></thead><tbody>${[...predictions].reverse().map(item => `<tr><td>${escapeHTML(item.market)}<small class="${item.result ? `result-${item.result}` : ''}">${resultLabel(item)}</small></td><td><span class="choice-pill ${item.choice === 'No' ? 'negative' : ''}">${escapeHTML(item.choice)}</span></td><td>${points(item.stake)}</td><td>${dateLabel(item.date)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty-state"><span class="empty-icon">↗</span><h4>${user ? 'Tu primera lectura está por llegar.' : 'Una mirada propia empieza aquí.'}</h4><p>${user ? 'Explora una pregunta y elige Sí o No. Aquí verás cada predicción.' : 'Crea tu acceso local y empieza con 1.000 puntos Puma.'}</p><button class="text-button" id="dashboardStart">${user ? 'Explorar mercados →' : 'Comenzar →'}</button></div>`;
+  $('#predictionHistory').innerHTML = predictions.length ? `<div class="history-scroll"><table><thead><tr><th>Mercado</th><th>Tu lectura</th><th>Puntos</th><th>Fecha</th></tr></thead><tbody>${[...predictions].reverse().map(item => `<tr><td>${escapeHTML(item.market)}<small class="${item.result ? `result-${item.result}` : ''}">${resultLabel(item)}</small></td><td><span class="choice-pill ${item.choice === 'No' ? 'negative' : ''}">${escapeHTML(item.choice)}</span></td><td>${points(item.stake)}</td><td>${dateLabel(item.date)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty-state"><span class="empty-icon">↗</span><h4>${user ? 'Tu primera lectura está por llegar.' : 'Una mirada propia empieza aquí.'}</h4><p>${user ? 'Explora una pregunta y elige Sí o No. Aquí verás cada predicción.' : `Crea tu acceso local y empieza con ${PumaDomain.STARTING_POINTS.toLocaleString('es-CL')} puntos Puma.`}</p><button class="text-button" id="dashboardStart">${user ? 'Explorar mercados →' : 'Comenzar →'}</button></div>`;
   $('#dashboardStart')?.addEventListener('click', () => user ? $('#mercados').scrollIntoView({ behavior:'smooth' }) : signInButton.click());
+  renderWallet();
+  renderConversion();
   $('#createdMarkets').innerHTML = user && ownMarkets().length ? [...ownMarkets()].reverse().map(item => `<a class="created-item" href="#mercado/${escapeHTML(item.id)}" data-created="${escapeHTML(item.id)}"><span>${escapeHTML(item.category)} · ${dateLabel(`${item.deadline}T12:00:00`)}</span><b>${escapeHTML(item.question)}</b><small>${outcomeLabel(item) ?? (isClosed(item) ? 'Cerrado · pendiente de resolver' : 'Abierto para predicciones')} ↗</small></a>`).join('') : '<div class="created-empty"><p>Las buenas preguntas empiezan contigo.</p><small>Tus mercados aparecerán aquí cuando crees el primero.</small></div>';
 }
 
@@ -357,8 +374,172 @@ $('#createForm').addEventListener('submit', event => {
   $('#mercados').scrollIntoView({ behavior:'smooth' });
   showToast('Mercado creado', 'Tu pregunta ya está disponible en este navegador.');
 });
+// Wallet: one 16-character address per local account.
+const clp = value => Number(value).toLocaleString('es-CL', { style:'currency', currency:'CLP', maximumFractionDigits:0 });
+function renderWallet() {
+  $('#walletSignedOut').hidden = Boolean(account);
+  $('#walletSignedIn').hidden = !account;
+  if (!account) return;
+  $('#walletAddress').textContent = PumaDomain.formatWallet(account.wallet);
+  $('#walletBalance').textContent = `${points(balance)} · ≈ ${clp(PumaDomain.toCLP(balance, supplyNow()))} ref.`;
+  $('#transferAmount').max = balance;
+  const transfers = [...(account.transfers ?? [])].reverse();
+  $('#transferHistory').innerHTML = transfers.length
+    ? `<ul class="transfer-list">${transfers.map(item => `<li class="transfer-${item.type}"><span>${item.type === 'out' ? 'Enviaste a' : 'Recibiste de'} ${escapeHTML(item.name)}<small>${escapeHTML(PumaDomain.formatWallet(item.wallet))} · ${dateLabel(item.date)}</small></span><b>${item.type === 'out' ? '−' : '+'}${points(item.amount)}</b></li>`).join('')}</ul>`
+    : '<p class="transfer-empty">Aún no hay movimientos.</p>';
+}
+$('#walletLogin').addEventListener('click', () => signInButton.click());
+$('#copyWallet').addEventListener('click', async () => {
+  if (!account) return;
+  try { await navigator.clipboard.writeText(PumaDomain.formatWallet(account.wallet)); showToast('Dirección copiada', PumaDomain.formatWallet(account.wallet)); }
+  catch { showToast('No se pudo copiar', 'Selecciona la dirección y cópiala a mano.'); }
+});
+$('#transferTo').addEventListener('input', () => {
+  const raw = $('#transferTo').value.trim();
+  const wallet = PumaDomain.normalizeWallet(raw);
+  const target = wallet && storage.get('puma-accounts', []).find(item => item.wallet === wallet);
+  $('#transferRecipient').classList.toggle('found', Boolean(target && target.id !== account?.id));
+  $('#transferRecipient').textContent = !raw ? '' : !wallet ? 'Usa 16 caracteres entre 0-9 y A-F.' : !target ? 'No hay ninguna cuenta con esa dirección.' : target.id === account?.id ? 'Esta es tu propia dirección.' : `Destinatario: ${target.name}`;
+});
+$('#transferForm').addEventListener('submit', event => {
+  event.preventDefault();
+  if (!account) return;
+  const amount = Number($('#transferAmount').value);
+  // Re-read so balances changed in other tabs are respected.
+  const fresh = storage.get('puma-accounts', []);
+  const result = PumaDomain.transfer(fresh, account.id, $('#transferTo').value, amount, { id:crypto.randomUUID() });
+  $('#transferError').textContent = result.error;
+  if (result.error) return;
+  const target = fresh.find(item => item.wallet === PumaDomain.normalizeWallet($('#transferTo').value));
+  if (!window.confirm(`¿Enviar ${points(amount)} a ${target.name} (${PumaDomain.formatWallet(target.wallet)})? Una transferencia no se puede deshacer.`)) return;
+  accounts = result.accounts;
+  storage.set('puma-accounts', accounts);
+  account = accounts.find(item => item.id === user.id);
+  balance = account.balance;
+  $('#transferForm').reset();
+  $('#transferRecipient').textContent = '';
+  renderDashboard();
+  if (currentDetail) renderDetail();
+  showToast('Transferencia enviada', `${points(amount)} para ${target.name}.`);
+});
+
+// Conversion guide: a fixed CLP fund split across every point in circulation.
+const clpRate = value => Number(value).toLocaleString('es-CL', { style:'currency', currency:'CLP', minimumFractionDigits:0, maximumFractionDigits:2 });
+const supplyNow = () => PumaDomain.circulating(accounts);
+const reasonLabel = { 'inicio':'Inicio del registro', 'nueva cuenta':'Nueva cuenta', 'mercado resuelto':'Mercado resuelto', 'ajuste':'Ajuste' };
+let ratePoints = [];
+let rateFocus = -1;
+function rateHistory() {
+  const log = storage.get('puma-supply', []);
+  const series = log.map(entry => ({ ...entry, value:PumaDomain.clpPerPoint(entry.supply) }));
+  return series.length ? series : [{ date:new Date().toISOString(), supply:supplyNow(), reason:'inicio', value:PumaDomain.clpPerPoint(supplyNow()) }];
+}
+function renderConversion() {
+  const supply = supplyNow();
+  const rate = PumaDomain.clpPerPoint(supply);
+  $('#conversionRate').textContent = `${clpRate(rate)} CLP`;
+  $('#conversionRateNote').textContent = `${clp(PumaDomain.REFERENCE_FUND_CLP)} de referencia ÷ ${points(supply)} en circulación.`;
+  $$('[data-clp-fund]').forEach(node => node.textContent = clp(PumaDomain.REFERENCE_FUND_CLP));
+  $$('[data-clp-start]').forEach(node => node.textContent = points(PumaDomain.STARTING_POINTS));
+  const typed = Math.max(0, Math.floor(Number($('#conversionInput').value) || 0));
+  $('#conversionResult').textContent = clp(PumaDomain.toCLP(typed, supply));
+  ratePoints = rateHistory();
+  const first = ratePoints[0].value, last = ratePoints.at(-1).value;
+  const change = first ? Math.round((last / first - 1) * 100) : 0;
+  $('#conversionChartNote').textContent = ratePoints.length > 1 ? ` · ${change <= 0 ? '' : '+'}${change}% desde el inicio del registro` : ' · aún no hay cambios registrados';
+  $('#conversionTable').innerHTML = `<table><thead><tr><th>Fecha</th><th>Evento</th><th>En circulación</th><th>1 P en CLP</th></tr></thead><tbody>${[...ratePoints].reverse().map(entry => `<tr><td>${escapeHTML(new Date(entry.date).toLocaleString('es-CL'))}</td><td>${escapeHTML(reasonLabel[entry.reason] ?? entry.reason)}</td><td>${points(entry.supply)}</td><td>${clpRate(entry.value)}</td></tr>`).join('')}</tbody></table>`;
+  drawRateChart();
+}
+function niceCeiling(value) {
+  if (!(value > 0)) return 1;
+  const power = 10 ** Math.floor(Math.log10(value));
+  return [1, 2, 2.5, 5, 10].map(step => step * power).find(candidate => candidate >= value);
+}
+// A change-over-time line does not need a zero baseline: fit the data so drops stay visible.
+function rateDomain(values) {
+  const low = Math.min(...values), high = Math.max(...values);
+  const pad = (high - low) * 0.25 || high * 0.1 || 1;
+  const step = niceCeiling((high - low + 2 * pad) / 4);
+  const min = Math.max(0, Math.floor((low - pad) / step) * step);
+  const max = Math.max(min + step * 4, Math.ceil((high + pad) / step) * step);
+  return { min, max, step };
+}
+const rateTimeLabel = (time, span, compact = false) => new Date(time).toLocaleString('es-CL', span < 2 * 86400000
+  ? (compact ? { hour:'2-digit', minute:'2-digit' } : { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
+  : (compact ? { day:'numeric', month:'short' } : { day:'numeric', month:'short', year:'numeric' }));
+function drawRateChart() {
+  const svg = $('#conversionChart');
+  const width = Math.max(280, Math.round(svg.parentElement.clientWidth || 480));
+  const height = 220, left = 62, right = 16, top = 16, bottom = 30;
+  const now = Date.now();
+  const times = ratePoints.map(entry => new Date(entry.date).getTime());
+  const start = times[0], end = Math.max(now, times.at(-1));
+  const span = Math.max(end - start, 1);
+  const domain = rateDomain(ratePoints.map(entry => entry.value));
+  const x = time => left + (width - left - right) * (time - start) / span;
+  const y = value => top + (height - top - bottom) * (1 - (value - domain.min) / (domain.max - domain.min));
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  let markup = `<desc id="conversionChartDesc">Línea escalonada del valor de referencia de 1 punto Puma en pesos chilenos. Empieza en ${clpRate(ratePoints[0].value)} y hoy vale ${clpRate(ratePoints.at(-1).value)}. Usa las flechas para recorrer los cambios o abre la tabla.</desc>`;
+  for (let value = domain.min; value <= domain.max + domain.step / 2; value += domain.step) {
+    markup += `<line class="rate-grid" x1="${left}" x2="${width - right}" y1="${y(value)}" y2="${y(value)}"/><text class="rate-axis" x="${left - 8}" y="${y(value) + 4}" text-anchor="end">${escapeHTML(clpRate(value))}</text>`;
+  }
+  // Step-after path: the rate holds until the next change in circulation.
+  let path = `M${x(times[0])},${y(ratePoints[0].value)}`;
+  ratePoints.forEach((entry, index) => {
+    if (index) path += ` H${x(times[index])} V${y(entry.value)}`;
+  });
+  path += ` H${x(end)}`;
+  markup += `<path class="rate-line" d="${path}"/>`;
+  ratePoints.forEach((entry, index) => { markup += `<circle class="rate-point" cx="${x(times[index])}" cy="${y(entry.value)}" r="4"/>`; });
+  const lastValue = ratePoints.at(-1).value;
+  markup += `<text class="rate-end" x="${x(end)}" y="${y(lastValue) - 10}" text-anchor="end">Hoy ${escapeHTML(clpRate(lastValue))}</text>`;
+  markup += `<text class="rate-axis" x="${left}" y="${height - 8}">${escapeHTML(rateTimeLabel(start, span, width < 420))}</text><text class="rate-axis" x="${width - right}" y="${height - 8}" text-anchor="end">${escapeHTML(rateTimeLabel(end, span, width < 420))}</text>`;
+  markup += `<line class="rate-cross" id="rateCross" x1="0" x2="0" y1="${top}" y2="${height - bottom}" visibility="hidden"/><rect class="rate-hit" x="${left}" y="${top}" width="${width - left - right}" height="${height - top - bottom}"/>`;
+  svg.innerHTML = markup;
+  svg.dataset.geometry = JSON.stringify({ left, right, width, start, span });
+  if (rateFocus >= ratePoints.length) rateFocus = ratePoints.length - 1;
+}
+function showRate(index, px) {
+  const entry = ratePoints[index];
+  if (!entry) return;
+  const cross = $('#rateCross');
+  cross.setAttribute('x1', px); cross.setAttribute('x2', px); cross.setAttribute('visibility', 'visible');
+  const tooltip = $('#conversionTooltip');
+  tooltip.textContent = `${rateTimeLabel(new Date(entry.date).getTime(), 0)} · ${reasonLabel[entry.reason] ?? entry.reason} · 1 P ≈ ${clpRate(entry.value)} · ${points(entry.supply)} en circulación`;
+  tooltip.hidden = false;
+}
+function hideRate() {
+  $('#rateCross')?.setAttribute('visibility', 'hidden');
+  $('#conversionTooltip').hidden = true;
+}
+$('#conversionChart').addEventListener('pointermove', event => {
+  const svg = $('#conversionChart');
+  const { left, right, width, start, span } = JSON.parse(svg.dataset.geometry || '{}');
+  const rect = svg.getBoundingClientRect();
+  const px = Math.min(width - right, Math.max(left, (event.clientX - rect.left) / rect.width * width));
+  const time = start + span * (px - left) / (width - left - right);
+  // Step chart: the value in force is the last change at or before the pointer.
+  let index = 0;
+  ratePoints.forEach((entry, i) => { if (new Date(entry.date).getTime() <= time) index = i; });
+  showRate(index, px);
+});
+$('#conversionChart').addEventListener('pointerleave', hideRate);
+$('#conversionChart').addEventListener('blur', hideRate);
+$('#conversionChart').addEventListener('keydown', event => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  const lastIndex = ratePoints.length - 1;
+  rateFocus = event.key === 'Home' ? 0 : event.key === 'End' ? lastIndex : Math.min(lastIndex, Math.max(0, (rateFocus < 0 ? lastIndex : rateFocus) + (event.key === 'ArrowRight' ? 1 : -1)));
+  const { left, right, width, start, span } = JSON.parse($('#conversionChart').dataset.geometry || '{}');
+  showRate(rateFocus, left + (width - left - right) * (new Date(ratePoints[rateFocus].date).getTime() - start) / span);
+});
+$('#conversionInput').addEventListener('input', renderConversion);
+if (window.ResizeObserver) new ResizeObserver(() => drawRateChart()).observe($('.conversion-chart-wrap'));
+
 function logout() {
-  user = null; account = null; balance = 1000; pendingAction = null; storage.set('puma-user', null);
+  user = null; account = null; balance = PumaDomain.STARTING_POINTS; pendingAction = null; storage.set('puma-user', null);
   $$('.modal-backdrop.open').forEach(modal => toggleModal(modal, false));
   authMode = 'login'; setSignedInUI();
   if (currentDetail) renderDetail();
@@ -413,6 +594,7 @@ function resolveMarket(outcome) {
   // Re-read so predictions made in other tabs are settled too.
   accounts = PumaDomain.settle(storage.get('puma-accounts', []), item, outcome);
   storage.set('puma-accounts', accounts);
+  recordSupply('mercado resuelto');
   item.resolution = { outcome, resolvedAt:new Date().toISOString() };
   storage.set('puma-markets', markets);
   account = accounts.find(entry => entry.id === user.id) ?? null;

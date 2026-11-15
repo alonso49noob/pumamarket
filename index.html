@@ -25,6 +25,7 @@
         <a class="active" href="#inicio">Explorar</a>
         <a href="#tendencias">Tendencias</a>
         <a href="#mi-cartera">Mi dashboard</a>
+        <a href="#billetera">Billetera</a>
       </nav>
 
       <div class="header-actions">
@@ -91,6 +92,52 @@
           <article class="stat-card"><span>Mercados creados</span><strong id="statCreated">—</strong><small>Preguntas que abren conversación</small></article>
         </div>
         <div class="dashboard-panels"><section class="activity-panel"><div class="panel-heading"><h3>Mis predicciones</h3><span class="panel-tag">MI ACTIVIDAD</span></div><div id="predictionHistory"></div></section><aside class="created-panel"><div class="panel-heading"><h3>Mis mercados</h3><span aria-hidden="true">↗</span></div><div id="createdMarkets"></div><p class="local-note">Tu cuenta, puntos y actividad se guardan sólo en este navegador. Los mercados creados son locales.</p></aside></div>
+      </section>
+
+      <section class="wallet-section" id="billetera" aria-labelledby="walletTitle">
+        <div class="section-heading"><div><p class="eyebrow">BILLETERA PUMA</p><h2 id="walletTitle">Tus puntos, a la vista.</h2></div></div>
+        <div class="wallet-grid">
+          <article class="wallet-panel">
+            <div class="panel-heading"><h3>Mi billetera</h3><span class="panel-tag">TRANSFERENCIAS</span></div>
+            <div id="walletSignedOut" class="wallet-empty">
+              <p>Inicia sesión para ver tu dirección de billetera y enviar puntos a otras cuentas.</p>
+              <button class="text-button" id="walletLogin" type="button">Iniciar sesión →</button>
+            </div>
+            <div id="walletSignedIn" hidden>
+              <span class="wallet-label">Tu dirección</span>
+              <div class="wallet-address"><code id="walletAddress"></code><button id="copyWallet" type="button">Copiar</button></div>
+              <div class="wallet-balance"><span>Saldo disponible</span><b id="walletBalance"></b></div>
+              <form id="transferForm" novalidate>
+                <label>Dirección de destino<input id="transferTo" type="text" required maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" aria-describedby="transferRecipient" /></label>
+                <small id="transferRecipient" class="transfer-recipient" aria-live="polite"></small>
+                <label>Puntos a enviar<input id="transferAmount" type="number" required min="1" step="1" inputmode="numeric" placeholder="ej. 100" /></label>
+                <p class="form-error" id="transferError" role="alert"></p>
+                <button class="primary-button full" type="submit">Transferir puntos <span>→</span></button>
+              </form>
+              <h4 class="wallet-subtitle">Movimientos</h4>
+              <div id="transferHistory"></div>
+            </div>
+            <p class="local-note">Sólo puedes enviar puntos a cuentas creadas en este navegador. Una transferencia no se puede deshacer.</p>
+          </article>
+
+          <article class="conversion-panel" id="conversion" aria-labelledby="conversionTitle">
+            <div class="panel-heading"><h3 id="conversionTitle">Puntos Puma en pesos</h3><span class="panel-tag">REFERENCIAL</span></div>
+            <p class="conversion-rate"><span class="conversion-today">Hoy, 1 P ≈</span><b id="conversionRate"></b><span id="conversionRateNote"></span></p>
+            <label class="conversion-calc">Calcula una cantidad<span class="conversion-calc-row"><input id="conversionInput" type="number" min="0" step="1" inputmode="numeric" value="100" aria-describedby="conversionResult" /><span>P ≈</span><output id="conversionResult" for="conversionInput"></output></span></label>
+            <figure class="conversion-chart">
+              <figcaption>Valor de 1 P en el tiempo<span id="conversionChartNote"></span></figcaption>
+              <div class="conversion-chart-wrap"><svg id="conversionChart" role="img" tabindex="0" aria-labelledby="conversionChartDesc"><desc id="conversionChartDesc"></desc></svg><output id="conversionTooltip" hidden></output></div>
+            </figure>
+            <details class="chart-data"><summary>Ver tabla de cambios</summary><div id="conversionTable"></div></details>
+            <ol class="conversion-guide">
+              <li><b>Un valor fijo para todos.</b> Toda la comunidad comparte <span data-clp-fund></span> de referencia, repartidos entre todos los puntos que existen.</li>
+              <li><b>Cada cuenta nueva infla la moneda.</b> Al registrarse alguien se crean <span data-clp-start></span> nuevos, y cada punto pasa a valer un poco menos.</li>
+              <li><b>Mover puntos no infla.</b> Predecir y transferir sólo cambian quién tiene los puntos. Al resolver un mercado se pueden perder algunos por redondeo, y eso sube un poco el valor.</li>
+              <li><b>No hay canje.</b> Los puntos no se compran, no se venden y no se cambian por dinero en PumaMarket.</li>
+              <li><b>Cuidado con ofertas.</b> Si alguien te ofrece pesos por tus puntos o te pide pagar por ellos, no es parte de PumaMarket.</li>
+            </ol>
+          </article>
+        </div>
       </section>
 
       <section class="markets-section" id="mercados">
@@ -171,7 +218,7 @@
         <div class="modal-mark">P</div>
         <p class="eyebrow">BIENVENIDO A PUMAMARKET</p>
         <h2 id="authTitle">Tu próxima buena intuición empieza aquí.</h2>
-        <p class="modal-note" id="authNote">Crea una sesión para guardar tus predicciones y recibir <b>1.000 puntos Puma</b>. Son virtuales: no tienen valor monetario.</p>
+        <p class="modal-note" id="authNote">Crea una sesión para guardar tus predicciones y recibir <b>100 puntos Puma</b>. Son virtuales: no tienen valor monetario.</p>
         <form id="authForm">
           <label>Nombre de usuario<input id="userName" type="text" placeholder="ej. puma_curioso" required minlength="2" maxlength="24" autocomplete="username" /></label>
           <label id="phoneLabel">Número de teléfono<input id="userPhone" type="tel" placeholder="+56 9 1234 5678" autocomplete="tel" maxlength="30" aria-describedby="phoneHint" /><small id="phoneHint">Incluye el código de país (+). Un teléfono por cuenta en este navegador. Sin verificación por SMS.</small></label>
@@ -205,7 +252,7 @@
         <p class="modal-note" id="marketQuestion">Mercado seleccionado</p>
         <div class="choice-row"><button class="choice active" data-choice="Sí" aria-pressed="true">Sí <b>Mi lectura</b></button><button class="choice" data-choice="No" aria-pressed="false">No <b>Mi lectura</b></button></div>
         <label class="stake-label">Puntos Puma <span id="stakeValue">100</span><input id="stakeRange" type="range" min="25" max="500" value="100" step="25" /></label>
-        <div class="balance-row"><span>Tu saldo</span><b id="balanceLabel">1.000 P</b></div>
+        <div class="balance-row"><span>Tu saldo</span><b id="balanceLabel">100 P</b></div>
         <button class="primary-button full" id="confirmPrediction">Confirmar predicción <span>→</span></button>
         <p class="form-terms">Sin compras, sin dinero real. Sólo puntos Puma.</p>
       </section>

@@ -63,6 +63,69 @@ const PumaDomain = {
       return { ...account, balance:(account.balance ?? 0) + credit, predictions };
     });
   },
+  // Points every new account receives once, at registration.
+  STARTING_POINTS: 100,
+  // Reference value only: points are never bought or redeemed for money.
+  // The whole economy is pegged to one fixed CLP amount, so every new
+  // account dilutes what each point is worth.
+  REFERENCE_FUND_CLP: 100000,
+  circulating(accounts) {
+    return accounts.reduce((sum, account) => sum + (account.balance ?? 0)
+      + (account.predictions ?? []).filter(item => !item.result).reduce((staked, item) => staked + item.stake, 0), 0);
+  },
+  clpPerPoint(supply) {
+    return this.REFERENCE_FUND_CLP / Math.max(supply, this.STARTING_POINTS);
+  },
+  toCLP(amount, supply) {
+    return Math.round(Number(amount) * this.clpPerPoint(supply));
+  },
+  logSupply(log, supply, date = new Date().toISOString(), reason = '') {
+    return log.at(-1)?.supply === supply ? log : [...log, { date, supply, reason }];
+  },
+  normalizeWallet(value) {
+    const compact = String(value ?? '').toUpperCase().replace(/[\s-]/g, '');
+    return /^[0-9A-F]{16}$/.test(compact) ? compact : null;
+  },
+  formatWallet(wallet) {
+    return wallet ? wallet.match(/.{4}/g).join('-') : '';
+  },
+  newWallet(accounts, randomBytes) {
+    const taken = new Set(accounts.map(item => item.wallet));
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const wallet = [...randomBytes(8)].map(byte => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+      if (!taken.has(wallet)) return wallet;
+    }
+    throw new Error('No se pudo generar una dirección de billetera única.');
+  },
+  assignWallets(accounts, randomBytes) {
+    const result = [];
+    for (const item of accounts) {
+      result.push(this.normalizeWallet(item.wallet) ? item : { ...item, wallet:this.newWallet([...result, ...accounts], randomBytes) });
+    }
+    return result;
+  },
+  transfer(accounts, fromId, toWallet, amount, { id = '', date = new Date().toISOString() } = {}) {
+    const sender = accounts.find(item => item.id === fromId);
+    const wallet = this.normalizeWallet(toWallet);
+    const receiver = wallet && accounts.find(item => item.wallet === wallet);
+    let error = '';
+    if (!sender) error = 'Inicia sesión para transferir puntos.';
+    else if (!wallet) error = 'La dirección debe tener 16 caracteres (0-9 y A-F).';
+    else if (!receiver) error = 'No hay ninguna cuenta con esa dirección en este navegador.';
+    else if (receiver.id === sender.id) error = 'No puedes transferir puntos a tu propia cuenta.';
+    else if (!Number.isInteger(amount) || amount < 1) error = 'Ingresa una cantidad entera de puntos, mínimo 1.';
+    else if (amount > sender.balance) error = 'No tienes saldo suficiente para esa transferencia.';
+    if (error) return { accounts, error };
+    const record = { id, amount, date };
+    return {
+      error:'',
+      accounts:accounts.map(item => {
+        if (item.id === sender.id) return { ...item, balance:item.balance - amount, transfers:[...(item.transfers ?? []), { ...record, type:'out', wallet, name:receiver.name }] };
+        if (item.id === receiver.id) return { ...item, balance:item.balance + amount, transfers:[...(item.transfers ?? []), { ...record, type:'in', wallet:sender.wallet, name:sender.name }] };
+        return item;
+      })
+    };
+  },
   activity(accounts) {
     const open = accounts.flatMap(account => (account.predictions ?? []).filter(item => !item.result));
     return { staked:open.reduce((sum, item) => sum + item.stake, 0), predictions:open.length };

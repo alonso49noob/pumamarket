@@ -103,3 +103,59 @@ td small.result-lost { color:#b45f43; }
 [data-theme=dark] td small.result-won { color:#8fdca2; }
 [data-theme=dark] td small.result-lost { color:#ffb49c; }
 [data-theme=dark] .ticker-track a:hover { color:#f1f5ef; }
+
+/* Wallet and CLP reference guide */
+.wallet-section { padding:64px clamp(24px,6vw,96px); border-bottom:1px solid var(--line); scroll-margin-top:80px; --rate-line:#007500; --rate-ring:#fafbf6; }
+.wallet-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:18px; align-items:start; }
+.wallet-panel,.conversion-panel { min-width:0; border:1px solid #d8e0d2; border-radius:12px; background:#fafbf6; padding:24px; }
+.wallet-empty p { font-size:13px; line-height:1.7; color:var(--muted); margin-bottom:10px; }
+.wallet-label { display:block; font:700 10px 'DM Mono',monospace; color:var(--muted); margin-bottom:8px; }
+.wallet-address { display:flex; gap:10px; align-items:center; }
+.wallet-address code { flex:1; min-width:0; font:500 clamp(14px,1.6vw,18px) 'DM Mono',monospace; letter-spacing:.5px; padding:11px 12px; border:1px dashed var(--line); border-radius:8px; overflow-wrap:anywhere; user-select:all; }
+.wallet-address button,.conversion-calc input { border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--ink); }
+.wallet-address button { padding:11px 14px; font:700 12px Manrope,sans-serif; cursor:pointer; }
+.wallet-address button:hover,.wallet-address button:focus-visible { border-color:var(--ink); }
+.wallet-balance { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:16px 0 4px; font-size:12px; color:var(--muted); }
+.wallet-balance b { color:var(--ink); }
+.wallet-panel label { display:block; color:var(--muted); font:700 10px 'DM Mono',monospace; letter-spacing:.3px; margin-top:16px; }
+.wallet-panel input { display:block; width:100%; height:44px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--ink); padding:0 12px; margin-top:7px; font:500 14px 'DM Mono',monospace; }
+.wallet-panel input:focus,.conversion-calc input:focus { outline:2px solid #6ea37f; outline-offset:1px; }
+.transfer-recipient { display:block; min-height:16px; margin-top:6px; font-size:11px; color:var(--muted); }
+.transfer-recipient.found { color:#2e8a57; font-weight:700; }
+.wallet-subtitle { font-size:14px; margin:26px 0 10px; }
+.transfer-list { list-style:none; margin:0; padding:0; }
+.transfer-list li { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid var(--line); font-size:12px; }
+.transfer-list small { display:block; margin-top:3px; font:500 10px 'DM Mono',monospace; color:var(--muted); }
+.transfer-list b { white-space:nowrap; }
+.transfer-in b { color:#2e8a57; }
+.transfer-empty { font-size:12px; color:var(--muted); }
+.wallet-panel .local-note { margin-top:18px; }
+.conversion-rate { display:flex; flex-direction:column; gap:4px; margin-bottom:18px; }
+.conversion-rate b { font:500 30px 'Space Grotesk',sans-serif; }
+.conversion-today { font:700 10px 'DM Mono',monospace; color:var(--muted); }
+.conversion-rate>span { font-size:11px; color:var(--muted); }
+.conversion-calc { display:block; font:700 10px 'DM Mono',monospace; color:var(--muted); }
+.conversion-calc-row { display:flex; align-items:center; gap:10px; margin-top:7px; flex-wrap:wrap; font:500 14px 'DM Mono',monospace; color:var(--ink); }
+.conversion-calc input { width:130px; height:42px; padding:0 10px; font:500 14px 'DM Mono',monospace; }
+.conversion-calc output { font:600 18px 'Space Grotesk',sans-serif; }
+.conversion-chart { margin:24px 0 0; }
+.conversion-chart figcaption { font-size:12px; font-weight:700; margin-bottom:10px; }
+.conversion-chart figcaption span { font-weight:500; color:var(--muted); }
+.conversion-chart-wrap { position:relative; }
+#conversionChart { display:block; max-width:100%; overflow:visible; border-radius:6px; }
+#conversionChart:focus-visible { outline:2px solid var(--ink); outline-offset:4px; }
+.rate-grid { stroke:var(--line); stroke-width:1; }
+.rate-axis { fill:var(--muted); font:10px 'DM Mono',monospace; }
+.rate-line { fill:none; stroke:var(--rate-line); stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+.rate-point { fill:var(--rate-line); stroke:var(--rate-ring); stroke-width:2; }
+.rate-end { fill:var(--ink); font:600 11px 'DM Mono',monospace; }
+.rate-cross { stroke:var(--muted); stroke-width:1; }
+.rate-hit { fill:transparent; }
+#conversionTooltip { position:absolute; right:0; top:-6px; max-width:calc(100% - 70px); padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); font:11px 'DM Mono',monospace; pointer-events:none; }
+.conversion-guide { margin:22px 0 0; padding-left:18px; display:grid; gap:10px; font-size:12px; line-height:1.65; color:var(--muted); }
+.conversion-guide b { color:var(--ink); }
+[data-theme=dark] .wallet-section { --rate-line:#3fae4f; --rate-ring:#182329; }
+[data-theme=dark] .wallet-panel,[data-theme=dark] .conversion-panel { background:#182329; border-color:var(--line); }
+[data-theme=dark] .transfer-recipient.found,[data-theme=dark] .transfer-in b { color:#8fdca2; }
+@media(max-width:900px) { .wallet-grid { grid-template-columns:1fr; } }
+@media(max-width:540px) { .wallet-section { padding:42px 18px; }.wallet-panel,.conversion-panel { padding:19px 14px; }.wallet-address { flex-direction:column; align-items:stretch; } }

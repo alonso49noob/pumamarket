@@ -8,7 +8,7 @@ Abre `index.html` en el navegador o sirve esta carpeta con un servidor HTTP est�
 
 ## Funcionalidad
 
-- Varias cuentas locales con inicio y cierre de sesión; saldo e historial separados por cuenta.
+- Varias cuentas locales con inicio y cierre de sesión; saldo e historial separados por cuenta. Cada cuenta nueva parte con 100 puntos (`STARTING_POINTS` en `domain.js`); las cuentas creadas antes conservan su saldo.
 - Registro con teléfono internacional obligatorio; normalización de formato y bloqueo de números o usuarios repetidos en este navegador. El perfil permite asociar un teléfono a cuentas anteriores.
 - Dashboard con saldo, puntos comprometidos, historial y mercados creados.
 - Creación de mercados Sí/No con pregunta, categoría, cierre a partir de mañana y hasta el 31 de diciembre de 2026 (inclusive), y criterio de resolución.
@@ -17,6 +17,8 @@ Abre `index.html` en el navegador o sirve esta carpeta con un servidor HTTP est�
 - Persistencia al recargar mediante `localStorage`.
 - Vista de detalle al pulsar un mercado, con gráfico, periodos, tabla de datos, reglas y panel Sí/No.
 - Resolución de mercados: quien creó un mercado puede declarar el resultado (Sí o No) desde su vista de detalle. El mercado se cierra y los puntos se reparten con pozo compartido: quienes acertaron se dividen todos los puntos apostados en proporción a lo que pusieron (se redondea hacia abajo). El historial muestra cada predicción como acertada o fallada.
+- Billetera por cuenta: cada cuenta tiene una dirección de 16 caracteres hexadecimales (64 bits, se muestra como `XXXX-XXXX-XXXX-XXXX`). Las cuentas anteriores reciben la suya al cargar la página. Se pueden transferir puntos enteros a otra cuenta de este navegador; se muestra el nombre del destinatario antes de confirmar y el historial de envíos y recepciones.
+- Guía de equivalencia a pesos chilenos con inflación: toda la economía vale un monto fijo de referencia (`REFERENCE_FUND_CLP` en `domain.js`, hoy $100.000 CLP) que se divide entre los puntos en circulación (saldos más apuestas abiertas). Cada cuenta nueva crea 100 puntos y baja el valor de cada punto. Transferir y predecir no cambian la circulación; resolver un mercado puede reducirla por redondeo. Incluye calculadora, gráfico de línea del valor de 1 P en el tiempo (con tooltip y navegación con flechas) y tabla de cambios. El historial se guarda en este navegador desde la primera carga con esta versión. Es sólo referencial: no existe compra, venta ni canje de puntos.
 - Portada con datos reales: puntos en juego, predicciones abiertas y un ticker con la probabilidad actual de cada mercado.
 - Modo oscuro desde el footer, con preferencia persistente.
 
@@ -28,4 +30,4 @@ Los tres mercados iniciales, sus porcentajes, historial inicial y señales de co
 
 ## Comprobaciones
 
-Ejecuta `node --test tests/domain.test.js` para verificar la normalización y unicidad de teléfonos, el cálculo de series del gráfico y el reparto de puntos al resolver mercados. No requiere instalar dependencias.
+Ejecuta `node --test tests/domain.test.js` para verificar la normalización y unicidad de teléfonos, el cálculo de series del gráfico, el reparto de puntos al resolver mercados, las direcciones de billetera y las transferencias. No requiere instalar dependencias.
