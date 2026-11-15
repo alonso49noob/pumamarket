@@ -172,3 +172,18 @@ td small.result-lost { color:#b45f43; }
 [data-theme=dark] .phone-status b { color:#ffc98f; }
 [data-theme=dark] .phone-status.verified { border-color:#2f5a3c; background:#16271d; }
 [data-theme=dark] .phone-status.verified b { color:#9fe0b0; }
+
+/* Verification code dialog */
+.phone-status .verify-open { align-self:flex-start; padding:4px 0 0; }
+.verify-steps { margin:14px 0 0; padding-left:18px; display:grid; gap:8px; font-size:12px; line-height:1.6; color:var(--muted); }
+.verify-steps b { color:var(--ink); }
+.verify-waiting { display:flex; align-items:center; gap:9px; margin:18px 0 0; font:600 12px 'DM Mono',monospace; color:var(--ink); }
+.verify-modal textarea { display:block; width:100%; box-sizing:border-box; border:1px solid #d2d8ce; border-radius:6px; background:#fffefa; color:var(--ink); padding:10px 12px; margin-top:7px; font:500 12px 'DM Mono',monospace; resize:vertical; overflow-wrap:anywhere; }
+.verify-modal textarea:focus { outline:0; border-color:#6ea37f; box-shadow:0 0 0 3px rgba(104,164,121,.15); }
+[data-theme=dark] .verify-modal textarea { background:#121a20; border-color:var(--line); }
+.verify-waiting .pulse-dot { margin-top:0; animation:verify-pulse 1.6s ease-in-out infinite; }
+@keyframes verify-pulse { 50% { box-shadow:0 0 0 7px rgba(252,103,57,.05); opacity:.6; } }
+.verify-request { margin-top:12px; padding:10px 12px; border:1px dashed #d2d8ce; border-radius:8px; }
+.verify-request pre { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; font:500 11px/1.6 'DM Mono',monospace; color:var(--ink); user-select:all; }
+.verify-request .text-button { padding:6px 0 0; }
+[data-theme=dark] .verify-request { border-color:var(--line); }

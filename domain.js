@@ -127,6 +127,57 @@ const PumaDomain = {
     const match = /^#verificar\/(\d{8,15})\/([A-Za-z0-9_-]{40,200})$/.exec(hash ?? '');
     return match ? { phone:`+${match[1]}`, signature:match[2] } : null;
   },
+  // Admin directory: built from the request each person sends with their code request.
+  verificationRequest({ name, wallet, phone }) {
+    return `Hola, quiero verificar mi cuenta de PumaMarket.\nUsuario: ${name}\nBilletera: ${this.formatWallet(wallet)}\nTeléfono: ${phone}`;
+  },
+  parseVerificationRequest(text) {
+    const value = String(text ?? '');
+    const line = label => new RegExp(`^\\s*${label}:\\s*(.+?)\\s*$`, 'mi').exec(value)?.[1] ?? '';
+    const name = line('Usuario').slice(0, 24);
+    const wallet = this.normalizeWallet(line('Billetera'));
+    const phone = this.normalizePhone(line('Tel[eé]fono'));
+    return name || wallet || phone ? { name, wallet, phone } : null;
+  },
+  upsertDirectory(list, { phone, name = '', wallet = null }, date = new Date().toISOString()) {
+    const normalized = this.normalizePhone(phone);
+    if (!normalized) return list;
+    const existing = list.find(item => item.phone === normalized);
+    const entry = {
+      phone:normalized,
+      name:name || existing?.name || '',
+      wallet:this.normalizeWallet(wallet) || existing?.wallet || null,
+      firstSentAt:existing?.firstSentAt ?? date,
+      lastSentAt:date
+    };
+    return [...list.filter(item => item.phone !== normalized), entry];
+  },
+  searchDirectory(list, term) {
+    const query = String(term ?? '').trim().toLocaleLowerCase();
+    const compact = query.replace(/[\s().-]/g, '');
+    if (!query) return list;
+    return list.filter(item => item.name.toLocaleLowerCase().includes(query)
+      || (compact && (item.phone.includes(compact) || (item.wallet ?? '').toLowerCase().includes(compact))));
+  },
+  // Spreadsheet-safe CSV: quotes every cell and defuses formula prefixes.
+  directoryCSV(list) {
+    const cell = value => {
+      let text = String(value ?? '');
+      if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+    const rows = [['Usuario', 'Teléfono', 'Billetera', 'Primer código', 'Último código']]
+      .concat(list.map(item => [item.name, item.phone, this.formatWallet(item.wallet), item.firstSentAt, item.lastSentAt]));
+    return rows.map(row => row.map(cell).join(',')).join('\r\n');
+  },
+  // Accepts what a person pastes: the bare code, the link, or the whole message.
+  extractVerificationCode(text) {
+    const value = String(text ?? '');
+    const link = /#verificar\/(\d{8,15})\/([A-Za-z0-9_-]{40,200})/.exec(value);
+    if (link) return { phone:`+${link[1]}`, signature:link[2] };
+    const tokens = value.match(/[A-Za-z0-9_-]{80,100}/g) ?? [];
+    return tokens.length === 1 ? { phone:null, signature:tokens[0] } : null;
+  },
   async signPhone(phone, privateJwk, subtle) {
     const normalized = this.normalizePhone(phone);
     if (!normalized) throw new Error('Número de teléfono no válido.');

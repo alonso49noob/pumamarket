@@ -233,3 +233,51 @@ test('the same password with another salt gives another fingerprint', async () =
   const b = await rules.hashAdminPassword('clave', rules.base64url(Uint8Array.from([2, 2, 2, 2])), 1000, subtle);
   assert.notEqual(a, b);
 });
+
+test('the pasted code is found in a bare code, a link or a whole message', async () => {
+  const { privateJwk, publicJwk } = await keyPair();
+  const code = await rules.signPhone('+56912345678', privateJwk, subtle);
+  const link = rules.verificationLink('https://example.test/', '+56912345678', code);
+  const message = `Tu código de verificación de PumaMarket es:\n${code}\n\nO abre: ${link}`;
+  assert.deepEqual(rules.extractVerificationCode(`  ${code}\n`), { phone:null, signature:code });
+  assert.deepEqual(rules.extractVerificationCode(link), { phone:'+56912345678', signature:code });
+  assert.deepEqual(rules.extractVerificationCode(message), { phone:'+56912345678', signature:code });
+  assert.equal(await rules.verifyPhone('+56912345678', rules.extractVerificationCode(message).signature, publicJwk, subtle), true);
+  assert.equal(rules.extractVerificationCode('123456'), null);
+  assert.equal(rules.extractVerificationCode(''), null);
+  assert.equal(rules.extractVerificationCode(`${code} ${code.split('').reverse().join('')}`), null);
+});
+
+test('a verification request round-trips name, wallet and phone', () => {
+  const message = rules.verificationRequest({ name:'carla_test', wallet:'A5634A82F2EA40EB', phone:'+56933333333' });
+  assert.match(message, /Billetera: A563-4A82-F2EA-40EB/);
+  assert.deepEqual(rules.parseVerificationRequest(message), { name:'carla_test', wallet:'A5634A82F2EA40EB', phone:'+56933333333' });
+  const chatty = `[10:41] Carla: ${message.replace('Teléfono', 'Telefono')}\nGracias!`;
+  assert.equal(rules.parseVerificationRequest(chatty).phone, '+56933333333');
+  assert.equal(rules.parseVerificationRequest('hola'), null);
+});
+test('the directory keeps one entry per phone and remembers the first code date', () => {
+  let list = rules.upsertDirectory([], { phone:'+56 9 3333 3333', name:'carla', wallet:'a563-4a82-f2ea-40eb' }, '2026-11-01T00:00:00Z');
+  list = rules.upsertDirectory(list, { phone:'+56933333333' }, '2026-11-05T00:00:00Z');
+  assert.equal(list.length, 1);
+  assert.deepEqual(list[0], { phone:'+56933333333', name:'carla', wallet:'A5634A82F2EA40EB', firstSentAt:'2026-11-01T00:00:00Z', lastSentAt:'2026-11-05T00:00:00Z' });
+  assert.equal(rules.upsertDirectory(list, { phone:'nope' }), list);
+});
+test('directory search matches name, phone or wallet in any format', () => {
+  const list = [
+    { phone:'+56933333333', name:'Carla', wallet:'A5634A82F2EA40EB' },
+    { phone:'+56944444444', name:'dani', wallet:null }
+  ];
+  assert.deepEqual(rules.searchDirectory(list, 'carl').map(i => i.name), ['Carla']);
+  assert.deepEqual(rules.searchDirectory(list, '9 4444').map(i => i.name), ['dani']);
+  assert.deepEqual(rules.searchDirectory(list, 'a563-4a82').map(i => i.name), ['Carla']);
+  assert.equal(rules.searchDirectory(list, '  ').length, 2);
+});
+test('directory CSV quotes cells and defuses spreadsheet formulas', () => {
+  const csv = rules.directoryCSV([{ phone:'+56933333333', name:'=HYPERLINK("x")', wallet:'A5634A82F2EA40EB', firstSentAt:'a', lastSentAt:'b' }]);
+  const [header, row] = csv.split('\r\n');
+  assert.match(header, /^"Usuario","Teléfono"/);
+  assert.equal(row.split(',')[0], `"'=HYPERLINK(""x"")"`);
+  assert.match(row, /"'\+56933333333"/);
+  assert.match(row, /"A563-4A82-F2EA-40EB"/);
+});

@@ -50,7 +50,9 @@ async function signLink(phone) {
   const privateJwk = JSON.parse(fs.readFileSync(privatePath, 'utf8'));
   const signature = await rules.signPhone(normalized, privateJwk, subtle);
   const site = option('--sitio') || DEFAULT_SITE;
-  console.log(`Enlace para ${normalized}:\n`);
+  console.log(`Código para ${normalized} (se pega en "Ingresar código"):\n`);
+  console.log(signature);
+  console.log('\nO, si prefieres, este enlace lo verifica al abrirlo:\n');
   console.log(rules.verificationLink(site, normalized, signature));
   console.log('\nEnvíalo SÓLO a ese número, por SMS o WhatsApp. Así compruebas que la persona lo tiene.');
 }

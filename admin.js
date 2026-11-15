@@ -2,7 +2,8 @@
 // The private key is held in memory only and never stored or sent.
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const { subtle } = window.crypto;
-const HISTORY_KEY = 'puma-admin-links';
+const DIRECTORY_KEY = 'puma-admin-directory';
+const LEGACY_KEY = 'puma-admin-links';
 let privateJwk = null;
 
 const storage = {
@@ -52,13 +53,37 @@ async function useKey(text) {
   setKeyState('ok', '✓ Clave cargada y comprobada', 'Coincide con la clave pública del sitio. Ya puedes generar enlaces.');
 }
 
-function renderHistory() {
-  const items = storage.get(HISTORY_KEY, []);
-  $('#historyList').innerHTML = items.length
-    ? `<ul class="transfer-list">${[...items].reverse().map(item => `<li><span>${escapeHTML(item.phone)}<small>${escapeHTML(new Date(item.date).toLocaleString('es-CL'))}</small></span></li>`).join('')}</ul>`
-    : '<p class="transfer-empty">Aún no generas enlaces.</p>';
-  $('#historyClear').hidden = !items.length;
+// Directory of people who received a code. Names come from pasted requests,
+// so everything rendered here is escaped.
+function loadDirectory() {
+  let list = storage.get(DIRECTORY_KEY, []);
+  const legacy = storage.get(LEGACY_KEY, null);
+  if (Array.isArray(legacy) && legacy.length) {
+    legacy.forEach(item => { list = PumaDomain.upsertDirectory(list, { phone:item.phone }, item.date); });
+    storage.set(DIRECTORY_KEY, list);
+    try { localStorage.removeItem(LEGACY_KEY); } catch { /* storage unavailable */ }
+  }
+  return list;
 }
+const shortDate = value => new Date(value).toLocaleString('es-CL', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+function renderDirectory() {
+  const all = loadDirectory();
+  const shown = PumaDomain.searchDirectory(all, $('#directorySearch').value).sort((a, b) => b.lastSentAt.localeCompare(a.lastSentAt));
+  $('#directoryCount').textContent = all.length ? `· ${all.length}` : '';
+  $('#exportCSV').disabled = $('#exportBackup').disabled = !all.length;
+  $('#directoryList').innerHTML = !all.length
+    ? '<p class="transfer-empty">Aún no generas códigos. Cada persona aparecerá aquí al generarle el suyo.</p>'
+    : !shown.length
+      ? '<p class="transfer-empty">Nadie coincide con esa búsqueda.</p>'
+      : `<table><thead><tr><th>Usuario</th><th>Teléfono</th><th>Billetera</th><th>Primer código</th><th>Último código</th><th><span class="sr-only">Acciones</span></th></tr></thead><tbody>${shown.map(item => `<tr><td>${item.name ? escapeHTML(item.name) : '<span class="admin-muted">Sin nombre</span>'}</td><td>${escapeHTML(item.phone)}</td><td class="admin-mono">${item.wallet ? escapeHTML(PumaDomain.formatWallet(item.wallet)) : '<span class="admin-muted">—</span>'}</td><td>${escapeHTML(shortDate(item.firstSentAt))}</td><td>${escapeHTML(shortDate(item.lastSentAt))}</td><td><button class="text-button admin-remove" type="button" data-remove="${escapeHTML(item.phone)}" aria-label="Quitar ${escapeHTML(item.name || item.phone)} del directorio">Quitar</button></td></tr>`).join('')}</tbody></table>`;
+}
+function download(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = Object.assign(document.createElement('a'), { href:url, download:name });
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+const today = () => new Date().toISOString().slice(0, 10);
 
 $('#keyFile').addEventListener('change', async event => {
   const file = event.target.files?.[0];
@@ -75,7 +100,22 @@ $('#keyForget').addEventListener('click', () => {
 $('#signPhone').addEventListener('input', () => {
   const raw = $('#signPhone').value.trim();
   const phone = PumaDomain.normalizePhone(raw);
-  $('#signPhoneHint').textContent = !raw ? 'Incluye el código de país.' : phone ? `Se firmará como ${phone}` : 'Número no válido: incluye el código de país (+).';
+  const known = phone && loadDirectory().find(item => item.phone === phone);
+  $('#signPhoneHint').textContent = !raw ? 'Incluye el código de país.' : !phone ? 'Número no válido: incluye el código de país (+).' : known ? `Se firmará como ${phone}. Ya está en el directorio${known.name ? ` como ${known.name}` : ''}.` : `Se firmará como ${phone}`;
+});
+$('#signRequest').addEventListener('input', () => {
+  const request = PumaDomain.parseVerificationRequest($('#signRequest').value);
+  if (!request) { $('#signRequestHint').textContent = $('#signRequest').value.trim() ? 'No reconocí una solicitud. Completa los campos a mano.' : 'Se llenan solos el usuario, la billetera y el teléfono.'; return; }
+  // Replace every field so nothing from the previous person carries over.
+  $('#signName').value = request.name;
+  $('#signWallet').value = PumaDomain.formatWallet(request.wallet);
+  $('#signPhone').value = request.phone ?? '';
+  $('#signPhone').dispatchEvent(new Event('input'));
+  const missing = [!request.name && 'usuario', !request.wallet && 'billetera', !request.phone && 'teléfono'].filter(Boolean);
+  const walletOwner = request.wallet && loadDirectory().find(item => item.wallet === request.wallet && item.phone !== request.phone);
+  $('#signRequestHint').textContent = walletOwner
+    ? `Ojo: esa billetera ya está registrada con ${walletOwner.phone}.`
+    : missing.length ? `Leí la solicitud, pero falta: ${missing.join(', ')}.` : 'Solicitud leída. Revisa que el número sea el mismo desde el que te escribió.';
 });
 
 $('#signForm').addEventListener('submit', async event => {
@@ -88,25 +128,65 @@ $('#signForm').addEventListener('submit', async event => {
   try { site = new URL($('#signSite').value).href; } catch { $('#signError').textContent = 'La dirección del sitio no es válida.'; return; }
   const signature = await PumaDomain.signPhone(phone, privateJwk, subtle);
   const link = PumaDomain.verificationLink(site, phone, signature);
-  const message = `Hola, este es tu enlace para verificar tu teléfono en PumaMarket: ${link}`;
+  const message = `Hola, tu código de verificación de PumaMarket es:\n\n${signature}\n\nCópialo y pégalo en "Ingresar código". También puedes abrir este enlace: ${link}`;
+  $('#resultCode').textContent = signature;
   $('#resultPhone').textContent = phone;
   $('#resultLink').value = message;
   $('#whatsappLink').href = `https://wa.me/${phone.slice(1)}?text=${encodeURIComponent(message)}`;
   $('#smsLink').href = `sms:${phone}?body=${encodeURIComponent(message)}`;
   $('#signResult').hidden = false;
-  const history = storage.get(HISTORY_KEY, []).filter(item => item.phone !== phone);
-  storage.set(HISTORY_KEY, [...history, { phone, date:new Date().toISOString() }]);
-  renderHistory();
+  storage.set(DIRECTORY_KEY, PumaDomain.upsertDirectory(loadDirectory(), { phone, name:$('#signName').value.trim(), wallet:$('#signWallet').value }));
+  renderDirectory();
+  // Clear the form so the next request starts empty.
+  ['#signRequest', '#signName', '#signWallet', '#signPhone'].forEach(selector => { $(selector).value = ''; });
+  $('#signRequestHint').textContent = 'Se llenan solos el usuario, la billetera y el teléfono.';
+  $('#signPhoneHint').textContent = 'Incluye el código de país.';
 });
 
+$('#copyCode').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('#resultCode').textContent); showToast('Código copiado', 'Pégalo en el chat con ese número.'); }
+  catch { showToast('No se pudo copiar', 'Selecciona el código y cópialo a mano.'); }
+});
 $('#copyLink').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText($('#resultLink').value); showToast('Mensaje copiado', 'Pégalo en el chat con ese número.'); }
   catch { $('#resultLink').select(); showToast('No se pudo copiar', 'El texto quedó seleccionado: cópialo a mano.'); }
 });
-$('#historyClear').addEventListener('click', () => {
-  if (!window.confirm('¿Borrar la lista de enlaces generados de este navegador?')) return;
-  storage.set(HISTORY_KEY, []);
-  renderHistory();
+$('#directorySearch').addEventListener('input', renderDirectory);
+$('#directoryList').addEventListener('click', event => {
+  const phone = event.target.closest('[data-remove]')?.dataset.remove;
+  if (!phone || !window.confirm(`¿Quitar ${phone} del directorio? Su verificación en el sitio no cambia.`)) return;
+  storage.set(DIRECTORY_KEY, loadDirectory().filter(item => item.phone !== phone));
+  renderDirectory();
+});
+$('#exportCSV').addEventListener('click', () => {
+  // The byte-order mark makes Excel read accents correctly.
+  download(`pumamarket-directorio-${today()}.csv`, `﻿${PumaDomain.directoryCSV(loadDirectory())}`, 'text/csv;charset=utf-8');
+});
+$('#exportBackup').addEventListener('click', () => {
+  download(`pumamarket-directorio-${today()}.json`, JSON.stringify({ version:1, exportedAt:new Date().toISOString(), directory:loadDirectory() }, null, 2), 'application/json');
+});
+$('#importBackup').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  let entries;
+  try { entries = JSON.parse(await file.text()).directory; } catch { entries = null; }
+  if (!Array.isArray(entries)) { showToast('No se pudo restaurar', 'Usa un archivo de respaldo descargado desde este panel.'); return; }
+  let list = loadDirectory();
+  const before = list.length;
+  // Merge: keep the earliest first code and the latest last code per phone.
+  for (const item of entries) {
+    if (!PumaDomain.normalizePhone(item?.phone) || Number.isNaN(Date.parse(item.firstSentAt)) || Number.isNaN(Date.parse(item.lastSentAt))) continue;
+    const current = list.find(entry => entry.phone === PumaDomain.normalizePhone(item.phone));
+    const latest = [item.lastSentAt, current?.lastSentAt ?? ''].sort().at(-1);
+    list = PumaDomain.upsertDirectory(list, { phone:item.phone, name:String(item.name ?? '').slice(0, 24), wallet:item.wallet }, latest);
+    const merged = list.find(entry => entry.phone === PumaDomain.normalizePhone(item.phone));
+    if (item.firstSentAt < merged.firstSentAt) merged.firstSentAt = item.firstSentAt;
+  }
+  storage.set(DIRECTORY_KEY, list);
+  renderDirectory();
+  const added = list.length - before;
+  showToast('Directorio restaurado', `${added} ${added === 1 ? 'persona nueva' : 'personas nuevas'}, ${list.length} en total.`);
 });
 
 // Password gate. Static hosting means this hides the panel rather than
@@ -164,4 +244,4 @@ applyTheme();
 initGate();
 $('#signSite').value = new URL('./', location.href).href;
 setKeyState('none', 'Sin clave', 'Carga clave-privada.json desde tu carpeta .pumamarket para empezar.');
-renderHistory();
+renderDirectory();

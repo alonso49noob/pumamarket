@@ -48,19 +48,29 @@
         </section>
 
         <section class="admin-card" aria-labelledby="signTitle">
-          <div class="panel-heading"><h2 id="signTitle">2 · Generar enlace</h2><span class="panel-tag">VERIFICACIÓN</span></div>
+          <div class="panel-heading"><h2 id="signTitle">2 · Generar código</h2><span class="panel-tag">VERIFICACIÓN</span></div>
           <form id="signForm" novalidate>
+            <label>Solicitud recibida<textarea id="signRequest" rows="4" spellcheck="false" placeholder="Pega aquí el mensaje que te envió la persona"></textarea></label>
+            <small class="admin-hint" id="signRequestHint" aria-live="polite">Se llenan solos el usuario, la billetera y el teléfono.</small>
+            <div class="admin-fields">
+              <label>Usuario<input id="signName" type="text" maxlength="24" autocomplete="off" placeholder="ej. puma_curioso" /></label>
+              <label>Billetera<input id="signWallet" type="text" maxlength="19" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" /></label>
+            </div>
             <label>Teléfono de la persona<input id="signPhone" type="tel" required maxlength="30" placeholder="+56 9 1234 5678" autocomplete="off" aria-describedby="signPhoneHint" /></label>
             <small class="admin-hint" id="signPhoneHint" aria-live="polite">Incluye el código de país.</small>
             <details class="admin-paste"><summary>Dirección del sitio</summary><label>Los enlaces apuntan a<input id="signSite" type="url" required /></label></details>
             <p class="form-error" id="signError" role="alert"></p>
-            <button class="primary-button full" id="signButton" type="submit" disabled>Generar enlace <span>→</span></button>
+            <button class="primary-button full" id="signButton" type="submit" disabled>Generar código y registrar <span>→</span></button>
           </form>
           <div class="admin-result" id="signResult" hidden>
             <p class="admin-warning">Envíalo <b>sólo</b> a <b id="resultPhone"></b>. Así compruebas que la persona tiene ese número.</p>
-            <textarea id="resultLink" rows="3" readonly></textarea>
+            <span class="admin-code-label">Código</span>
+            <code class="admin-code" id="resultCode"></code>
+            <span class="admin-code-label">Mensaje completo, con código y enlace</span>
+            <textarea id="resultLink" rows="5" readonly></textarea>
             <div class="admin-actions">
               <button class="admin-action" id="copyLink" type="button">Copiar mensaje</button>
+              <button class="admin-action" id="copyCode" type="button">Copiar sólo el código</button>
               <a class="admin-action" id="whatsappLink" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
               <a class="admin-action" id="smsLink">Abrir SMS</a>
             </div>
@@ -68,9 +78,17 @@
         </section>
 
         <section class="admin-card admin-history" aria-labelledby="historyTitle">
-          <div class="panel-heading"><h2 id="historyTitle">Enlaces generados</h2><button class="text-button" id="historyClear" type="button">Borrar lista</button></div>
-          <div id="historyList"></div>
-          <p class="local-note">Esta lista sólo guarda número y fecha en este navegador, para que recuerdes a quién verificaste.</p>
+          <div class="panel-heading"><h2 id="historyTitle">Directorio de usuarios <span class="admin-count" id="directoryCount"></span></h2><span class="panel-tag">CÓDIGOS ENVIADOS</span></div>
+          <div class="admin-toolbar">
+            <label class="admin-search">Buscar<input id="directorySearch" type="search" placeholder="Nombre, teléfono o billetera" autocomplete="off" /></label>
+            <div class="admin-actions">
+              <button class="admin-action" id="exportCSV" type="button">Descargar CSV</button>
+              <button class="admin-action" id="exportBackup" type="button">Respaldo</button>
+              <label class="admin-action admin-file-action">Restaurar<input id="importBackup" type="file" accept=".json,application/json" /></label>
+            </div>
+          </div>
+          <div class="admin-table" id="directoryList"></div>
+          <p class="local-note">Cada persona entra al directorio cuando le generas un código. "Primer código" no confirma que lo haya usado. El directorio vive sólo en este navegador: descarga un respaldo de vez en cuando.</p>
         </section>
       </div>
     </main>

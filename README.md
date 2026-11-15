@@ -24,7 +24,7 @@ Abre `index.html` en el navegador o sirve esta carpeta con un servidor HTTP est�
 
 ## Verificación de teléfono
 
-Sin servidor: quien administra firma cada número con una clave privada (ECDSA P-256) y envía a ese número un enlace. El sitio comprueba la firma con la clave pública de `clave-publica.js`. Las cuentas sin verificar pueden recibir puntos, pero no enviarlos. Si alguien cambia su teléfono, debe verificarlo de nuevo.
+Sin servidor: quien administra firma cada número con una clave privada (ECDSA P-256) y envía a ese número un código y un enlace. La persona pulsa "Ingresar código" en su perfil o en la billetera, ve los pasos y el aviso de que debe esperar el código, y pega lo que recibió: el código, el enlace o el mensaje completo. También puede abrir el enlace directamente. El sitio comprueba la firma con la clave pública de `clave-publica.js`. El código tiene 86 caracteres porque es la firma misma: un código corto no se podría comprobar sin servidor sin que alguien lo adivinara probando. Las cuentas sin verificar pueden recibir puntos, pero no enviarlos. Si alguien cambia su teléfono, debe verificarlo de nuevo.
 
 1. Una sola vez, crea tus claves. La privada se guarda en `~/.pumamarket/clave-privada.json`, fuera del repositorio. Haz commit de `clave-publica.js`.
 
@@ -32,7 +32,7 @@ Sin servidor: quien administra firma cada número con una clave privada (ECDSA P
    node tools/verificar-telefono.js claves
    ```
 
-2. Cuando alguien te escriba desde su número, genera su enlace y envíaselo **sólo a ese número** por SMS o WhatsApp:
+2. Cuando alguien te escriba desde su número, genera su código y envíaselo **sólo a ese número** por SMS o WhatsApp:
 
    ```bash
    node tools/verificar-telefono.js "+56 9 1234 5678"
@@ -40,7 +40,9 @@ Sin servidor: quien administra firma cada número con una clave privada (ECDSA P
 
    Para probar en local, agrega `--sitio http://localhost:8765/`.
 
-   También puedes usar el panel de administración en `admin.html` (no está enlazado desde el sitio). Cargas tu archivo de clave privada, que queda sólo en la memoria de la pestaña, y el panel comprueba que coincida con `clave-publica.js`. Luego escribes el número y obtienes el mensaje listo para copiar, con botones para abrir WhatsApp o SMS. La página puede ser pública: sin tu clave privada no sirve para nada.
+   También puedes usar el panel de administración en `admin.html` (no está enlazado desde el sitio). Cargas tu archivo de clave privada, que queda sólo en la memoria de la pestaña, y el panel comprueba que coincida con `clave-publica.js`. Luego pegas la solicitud que te envió la persona (la ventana de verificación del sitio se la da lista, con su usuario, billetera y teléfono) y los campos se llenan solos. Al generar el código obtienes un mensaje listo con código y enlace, con botones para copiarlos o abrir WhatsApp o SMS.
+
+   Cada código generado registra a la persona en el **directorio de usuarios** del panel: usuario, teléfono, billetera y fechas del primer y último código, con buscador por cualquiera de esos datos. Puedes descargarlo en CSV para Excel (protegido contra fórmulas inyectadas) y guardar o restaurar un respaldo en JSON. El directorio vive sólo en el navegador donde lo usas, así que conviene descargar un respaldo de vez en cuando. No muestra saldos ni actividad, porque esos datos siguen en el navegador de cada persona. La página puede ser pública: sin tu clave privada no sirve para nada.
 
    El panel pide una contraseña antes de mostrarse. Elígela una vez con este comando, que no muestra lo que escribes, y haz commit de `admin-acceso.js`:
 
