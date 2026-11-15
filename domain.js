@@ -143,6 +143,19 @@ const PumaDomain = {
       return await subtle.verify({ name:'ECDSA', hash:'SHA-256' }, key, bytes, new TextEncoder().encode(this.VERIFY_PREFIX + normalized));
     } catch { return false; }
   },
+  // Admin gate: only a salted PBKDF2 fingerprint of the password is published.
+  ADMIN_ITERATIONS: 600000,
+  async hashAdminPassword(password, salt, iterations, subtle) {
+    const saltBytes = this.fromBase64url(salt);
+    if (!saltBytes || !password) return null;
+    const material = await subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+    const bits = await subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt:saltBytes, iterations }, material, 256);
+    return this.base64url(new Uint8Array(bits));
+  },
+  async checkAdminPassword(password, access, subtle) {
+    if (!access?.salt || !access?.hash || !access?.iterations) return false;
+    return (await this.hashAdminPassword(password, access.salt, access.iterations, subtle)) === access.hash;
+  },
   transfer(accounts, fromId, toWallet, amount, { id = '', date = new Date().toISOString() } = {}) {
     const sender = accounts.find(item => item.id === fromId);
     const wallet = this.normalizeWallet(toWallet);

@@ -55,9 +55,69 @@ async function signLink(phone) {
   console.log('\nEnvíalo SÓLO a ese número, por SMS o WhatsApp. Así compruebas que la persona lo tiene.');
 }
 
+// Applies raw keystrokes to the hidden value. Pure, so it can be checked
+// without a terminal. Escape sequences (arrows, bracketed paste) are ignored.
+function applyKeys(value, chunk) {
+  let echo = '';
+  for (const char of chunk.replace(/\x1b\[[0-9;]*[~A-Za-z]/g, '')) {
+    if (char === '\r' || char === '\n') return { value, echo, done:true };
+    if (char === '\u0003') return { value, echo, cancelled:true };
+    if (char === '\u007f' || char === '\b') {
+      if (value) { value = [...value].slice(0, -1).join(''); echo += '\b \b'; }
+    } else if (char >= ' ') { value += char; echo += '*'; }
+  }
+  return { value, echo };
+}
+
+// Reads a line key by key, echoing * so the password never shows on screen.
+function askHidden(question) {
+  return new Promise((resolve, reject) => {
+    const input = process.stdin;
+    let value = '';
+    process.stdout.write(question);
+    input.setRawMode(true);
+    input.setEncoding('utf8');
+    input.resume();
+    const stop = () => { input.removeListener('data', onData); input.setRawMode(false); input.pause(); process.stdout.write('\n'); };
+    function onData(chunk) {
+      const result = applyKeys(value, chunk);
+      value = result.value;
+      process.stdout.write(result.echo);
+      if (result.cancelled) { stop(); reject(new Error('Cancelado. No se cambió nada.')); }
+      else if (result.done) { stop(); resolve(value); }
+    }
+    input.on('data', onData);
+  });
+}
+
+async function setAdminPassword() {
+  let password = process.env.PUMA_ADMIN_PASSWORD;
+  if (!password) {
+    if (!process.stdin.isTTY) {
+      console.error('Esta terminal no permite escribir la contraseña de forma oculta.');
+      console.error('Usa PowerShell o la terminal de la app. En Git Bash, antepón winpty: winpty node tools/verificar-telefono.js contrasena');
+      process.exit(1);
+    }
+    password = await askHidden('Nueva contraseña del panel (verás * al escribir o pegar): ');
+    const again = await askHidden('Repítela: ');
+    if (password !== again) { console.error('Las contraseñas no coinciden. No se cambió nada.'); process.exit(1); }
+  }
+  if ([...password].length < 12) { console.error('Usa al menos 12 caracteres: la huella es pública y una contraseña corta se puede adivinar.'); process.exit(1); }
+  const salt = rules.base64url(globalThis.crypto.getRandomValues(new Uint8Array(16)));
+  const iterations = rules.ADMIN_ITERATIONS;
+  const hash = await rules.hashAdminPassword(password, salt, iterations, subtle);
+  const accessPath = path.join(__dirname, '..', 'admin-acceso.js');
+  fs.writeFileSync(accessPath, `// Salted PBKDF2 fingerprint of the admin panel password. Safe to publish; the password itself is not here.\nwindow.PUMA_ADMIN_ACCESS = ${JSON.stringify({ salt, iterations, hash })};\n`);
+  console.log(`Contraseña guardada como huella en ${accessPath}. Haz commit de ese archivo y súbelo.`);
+}
+
 const [command] = process.argv.slice(2);
-if (!command || command === '--ayuda') {
-  console.log('Uso:\n  node tools/verificar-telefono.js claves [--reemplazar]\n  node tools/verificar-telefono.js "+56 9 1234 5678" [--sitio URL]');
+if (require.main !== module) {
+  module.exports = { applyKeys };
+} else if (!command || command === '--ayuda') {
+  console.log('Uso:\n  node tools/verificar-telefono.js claves [--reemplazar]\n  node tools/verificar-telefono.js contrasena\n  node tools/verificar-telefono.js "+56 9 1234 5678" [--sitio URL]');
+} else if (command === 'contrasena' || command === 'contraseña') {
+  setAdminPassword().catch(error => { console.error(error.message); process.exit(1); });
 } else if (command === 'claves') {
   createKeys().catch(error => { console.error(error.message); process.exit(1); });
 } else {

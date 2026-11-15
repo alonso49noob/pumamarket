@@ -109,7 +109,59 @@ $('#historyClear').addEventListener('click', () => {
   renderHistory();
 });
 
+// Password gate. Static hosting means this hides the panel rather than
+// securing it; signing still requires the private key file.
+const UNLOCK_KEY = 'puma-admin-unlocked';
+function setLocked(locked) {
+  $('#adminGate').hidden = !locked;
+  $('#adminContent').hidden = locked;
+  $('#adminLock').hidden = locked;
+  if (locked) setTimeout(() => $('#gatePassword').focus(), 50);
+}
+function initGate() {
+  const access = window.PUMA_ADMIN_ACCESS;
+  if (!access) {
+    $('#gatePassword').disabled = $('#gateButton').disabled = true;
+    $('#gateNote').innerHTML = 'Aún no configuraste la contraseña. En tu terminal, desde la carpeta del proyecto, ejecuta <code>node tools/verificar-telefono.js contrasena</code> y sube el archivo <code>admin-acceso.js</code>.';
+    setLocked(true);
+    return;
+  }
+  let unlocked = false;
+  try { unlocked = sessionStorage.getItem(UNLOCK_KEY) === access.hash; } catch { /* storage unavailable */ }
+  setLocked(!unlocked);
+}
+$('#gateForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const access = window.PUMA_ADMIN_ACCESS;
+  const button = $('#gateButton');
+  if (!access || button.disabled) return;
+  button.disabled = true;
+  button.innerHTML = 'Comprobando…';
+  $('#gateError').textContent = '';
+  const ok = await PumaDomain.checkAdminPassword($('#gatePassword').value, access, subtle);
+  if (ok) {
+    try { sessionStorage.setItem(UNLOCK_KEY, access.hash); } catch { /* storage unavailable */ }
+    $('#gatePassword').value = '';
+    setLocked(false);
+  } else {
+    // A short pause makes guessing by hand tedious.
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    $('#gateError').textContent = 'Contraseña incorrecta.';
+    $('#gatePassword').select();
+  }
+  button.disabled = false;
+  button.innerHTML = 'Entrar <span>→</span>';
+});
+$('#adminLock').addEventListener('click', () => {
+  try { sessionStorage.removeItem(UNLOCK_KEY); } catch { /* storage unavailable */ }
+  privateJwk = null;
+  $('#signResult').hidden = true;
+  setKeyState('none', 'Sin clave', 'Carga clave-privada.json desde tu carpeta .pumamarket para empezar.');
+  setLocked(true);
+});
+
 applyTheme();
+initGate();
 $('#signSite').value = new URL('./', location.href).href;
 setKeyState('none', 'Sin clave', 'Carga clave-privada.json desde tu carpeta .pumamarket para empezar.');
 renderHistory();

@@ -217,3 +217,19 @@ test('base64url round-trips arbitrary bytes', () => {
   const bytes = Uint8Array.from([0, 1, 250, 251, 252, 253, 254, 255, 62, 63]);
   assert.deepEqual(rules.fromBase64url(rules.base64url(bytes)), bytes);
 });
+
+test('admin password check accepts only the exact password', async () => {
+  const salt = rules.base64url(Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]));
+  const iterations = 1000;
+  const hash = await rules.hashAdminPassword('cóndor-azul-2026', salt, iterations, subtle);
+  const access = { salt, iterations, hash };
+  assert.equal(await rules.checkAdminPassword('cóndor-azul-2026', access, subtle), true);
+  assert.equal(await rules.checkAdminPassword('condor-azul-2026', access, subtle), false);
+  assert.equal(await rules.checkAdminPassword('', access, subtle), false);
+  assert.equal(await rules.checkAdminPassword('cóndor-azul-2026', null, subtle), false);
+});
+test('the same password with another salt gives another fingerprint', async () => {
+  const a = await rules.hashAdminPassword('clave', rules.base64url(Uint8Array.from([1, 1, 1, 1])), 1000, subtle);
+  const b = await rules.hashAdminPassword('clave', rules.base64url(Uint8Array.from([2, 2, 2, 2])), 1000, subtle);
+  assert.notEqual(a, b);
+});

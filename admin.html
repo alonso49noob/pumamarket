@@ -16,10 +16,21 @@
   <body class="admin-page">
     <header class="topbar">
       <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">P</span><span>puma<span>market</span></span></a>
-      <span class="admin-tag">ADMINISTRACIÓN</span>
+      <div class="admin-top-actions"><span class="admin-tag">ADMINISTRACIÓN</span><button class="admin-tag admin-lock" id="adminLock" type="button" hidden>Bloquear</button></div>
     </header>
 
-    <main class="admin-main">
+    <section class="admin-gate" id="adminGate" aria-labelledby="gateTitle">
+      <p class="eyebrow">ACCESO RESTRINGIDO</p>
+      <h1 id="gateTitle">Panel de administración</h1>
+      <form id="gateForm">
+        <label>Contraseña<input id="gatePassword" type="password" autocomplete="current-password" required /></label>
+        <p class="form-error" id="gateError" role="alert"></p>
+        <button class="primary-button full" id="gateButton" type="submit">Entrar <span>→</span></button>
+      </form>
+      <p class="local-note" id="gateNote">El acceso se mantiene hasta que cierres esta pestaña o pulses Bloquear.</p>
+    </section>
+
+    <main class="admin-main" id="adminContent" hidden>
       <div class="admin-intro">
         <p class="eyebrow">PANEL DE ADMINISTRACIÓN</p>
         <h1>Verifica teléfonos.</h1>
@@ -65,6 +76,7 @@
     </main>
     <div class="toast" id="toast" role="status"><span>✓</span><div><b></b><small></small></div></div>
     <script src="clave-publica.js"></script>
+    <script src="admin-acceso.js"></script>
     <script src="domain.js"></script>
     <script src="admin.js"></script>
   </body>

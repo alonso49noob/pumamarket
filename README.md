@@ -42,6 +42,14 @@ Sin servidor: quien administra firma cada número con una clave privada (ECDSA P
 
    También puedes usar el panel de administración en `admin.html` (no está enlazado desde el sitio). Cargas tu archivo de clave privada, que queda sólo en la memoria de la pestaña, y el panel comprueba que coincida con `clave-publica.js`. Luego escribes el número y obtienes el mensaje listo para copiar, con botones para abrir WhatsApp o SMS. La página puede ser pública: sin tu clave privada no sirve para nada.
 
+   El panel pide una contraseña antes de mostrarse. Elígela una vez con este comando, que no muestra lo que escribes, y haz commit de `admin-acceso.js`:
+
+   ```bash
+   node tools/verificar-telefono.js contrasena
+   ```
+
+   Ese archivo sólo guarda una huella PBKDF2 con sal, no la contraseña. Usa al menos 12 caracteres, porque la huella es pública y una contraseña corta se puede adivinar probando. En un sitio estático la contraseña oculta el panel, pero alguien con conocimientos técnicos puede saltársela: la protección real sigue siendo la clave privada.
+
 Nunca compartas ni subas la clave privada. Si se filtra, ejecuta `claves --reemplazar`, haz commit de la nueva `clave-publica.js` y los enlaces anteriores dejarán de servir.
 
 ## Alcance
