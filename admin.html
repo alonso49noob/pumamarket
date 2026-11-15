@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f7f5ef" />
+    <title>PumaMarket · Administración</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="experience.css" />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body class="admin-page">
+    <header class="topbar">
+      <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">P</span><span>puma<span>market</span></span></a>
+      <span class="admin-tag">ADMINISTRACIÓN</span>
+    </header>
+
+    <main class="admin-main">
+      <div class="admin-intro">
+        <p class="eyebrow">PANEL DE ADMINISTRACIÓN</p>
+        <h1>Verifica teléfonos.</h1>
+        <p>Carga tu clave privada, escribe el número de quien te escribió y envíale su enlace. Este panel no ve las cuentas de nadie: cada persona guarda sus datos en su propio navegador.</p>
+      </div>
+
+      <div class="admin-grid">
+        <section class="admin-card" aria-labelledby="keyTitle">
+          <div class="panel-heading"><h2 id="keyTitle">1 · Tu clave privada</h2><span class="panel-tag" id="keyTag">SIN CARGAR</span></div>
+          <label class="admin-file">Archivo de clave<input id="keyFile" type="file" accept=".json,application/json" /></label>
+          <details class="admin-paste"><summary>O pega el contenido del archivo</summary><textarea id="keyText" rows="5" spellcheck="false" placeholder='{"kty":"EC","crv":"P-256",...}'></textarea><button class="text-button" id="keyPasteButton" type="button">Usar este texto →</button></details>
+          <div class="phone-status" id="keyStatus" role="status"></div>
+          <button class="text-button" id="keyForget" type="button" hidden>Olvidar clave</button>
+          <p class="local-note">La clave sólo queda en la memoria de esta pestaña. No se guarda ni se envía a ninguna parte, y se olvida al cerrar la pestaña. No la cargues en un computador compartido.</p>
+        </section>
+
+        <section class="admin-card" aria-labelledby="signTitle">
+          <div class="panel-heading"><h2 id="signTitle">2 · Generar enlace</h2><span class="panel-tag">VERIFICACIÓN</span></div>
+          <form id="signForm" novalidate>
+            <label>Teléfono de la persona<input id="signPhone" type="tel" required maxlength="30" placeholder="+56 9 1234 5678" autocomplete="off" aria-describedby="signPhoneHint" /></label>
+            <small class="admin-hint" id="signPhoneHint" aria-live="polite">Incluye el código de país.</small>
+            <details class="admin-paste"><summary>Dirección del sitio</summary><label>Los enlaces apuntan a<input id="signSite" type="url" required /></label></details>
+            <p class="form-error" id="signError" role="alert"></p>
+            <button class="primary-button full" id="signButton" type="submit" disabled>Generar enlace <span>→</span></button>
+          </form>
+          <div class="admin-result" id="signResult" hidden>
+            <p class="admin-warning">Envíalo <b>sólo</b> a <b id="resultPhone"></b>. Así compruebas que la persona tiene ese número.</p>
+            <textarea id="resultLink" rows="3" readonly></textarea>
+            <div class="admin-actions">
+              <button class="admin-action" id="copyLink" type="button">Copiar mensaje</button>
+              <a class="admin-action" id="whatsappLink" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>
+              <a class="admin-action" id="smsLink">Abrir SMS</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-card admin-history" aria-labelledby="historyTitle">
+          <div class="panel-heading"><h2 id="historyTitle">Enlaces generados</h2><button class="text-button" id="historyClear" type="button">Borrar lista</button></div>
+          <div id="historyList"></div>
+          <p class="local-note">Esta lista sólo guarda número y fecha en este navegador, para que recuerdes a quién verificaste.</p>
+        </section>
+      </div>
+    </main>
+    <div class="toast" id="toast" role="status"><span>✓</span><div><b></b><small></small></div></div>
+    <script src="clave-publica.js"></script>
+    <script src="domain.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>

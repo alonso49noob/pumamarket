@@ -116,7 +116,7 @@ test('existing accounts get a wallet once and keep it afterwards', () => {
   assert.deepEqual(rules.assignWallets(first, random), first);
 });
 const walletAccounts = () => [
-  { id:'ana', name:'ana', wallet:'AAAAAAAAAAAAAAAA', balance:500 },
+  { id:'ana', name:'ana', wallet:'AAAAAAAAAAAAAAAA', balance:500, phoneVerified:{ at:'2026-11-14T00:00:00Z' } },
   { id:'beto', name:'beto', wallet:'BBBBBBBBBBBBBBBB', balance:100 }
 ];
 test('transfer moves points and records both sides', () => {
@@ -175,4 +175,45 @@ test('supply log only records changes', () => {
   log = rules.logSupply(log, 200, '2026-11-03T00:00:00Z', 'nueva cuenta');
   assert.deepEqual(log.map(entry => entry.supply), [100, 200]);
   assert.equal(log[1].reason, 'nueva cuenta');
+});
+
+const { subtle } = globalThis.crypto;
+const keyPair = async () => {
+  const pair = await subtle.generateKey(rules.VERIFY_ALGORITHM, true, ['sign', 'verify']);
+  return { privateJwk:await subtle.exportKey('jwk', pair.privateKey), publicJwk:await subtle.exportKey('jwk', pair.publicKey) };
+};
+
+test('a signed link verifies only the phone it was made for', async () => {
+  const { privateJwk, publicJwk } = await keyPair();
+  const signature = await rules.signPhone('+56 9 1234 5678', privateJwk, subtle);
+  const link = rules.verificationLink('https://example.test/', '+56912345678', signature);
+  const parsed = rules.parseVerification(new URL(link).hash);
+  assert.equal(parsed.phone, '+56912345678');
+  assert.equal(await rules.verifyPhone('0056 9 1234 5678', parsed.signature, publicJwk, subtle), true);
+  assert.equal(await rules.verifyPhone('+56912345679', parsed.signature, publicJwk, subtle), false);
+});
+test('a signature from another key or a tampered signature is rejected', async () => {
+  const mine = await keyPair(), theirs = await keyPair();
+  const signature = await rules.signPhone('+56912345678', theirs.privateJwk, subtle);
+  assert.equal(await rules.verifyPhone('+56912345678', signature, mine.publicJwk, subtle), false);
+  const good = await rules.signPhone('+56912345678', mine.privateJwk, subtle);
+  const flipped = (good[0] === 'A' ? 'B' : 'A') + good.slice(1);
+  assert.equal(await rules.verifyPhone('+56912345678', flipped, mine.publicJwk, subtle), false);
+  assert.equal(await rules.verifyPhone('+56912345678', 'no-es-base64!', mine.publicJwk, subtle), false);
+  assert.equal(await rules.verifyPhone('+56912345678', good, undefined, subtle), false);
+});
+test('only well-formed verification links are parsed', () => {
+  assert.equal(rules.parseVerification('#mercado/abc'), null);
+  assert.equal(rules.parseVerification('#verificar/123/abc'), null);
+  assert.equal(rules.parseVerification(`#verificar/56912345678/${'x'.repeat(86)}`).phone, '+56912345678');
+});
+test('unverified accounts cannot send points', () => {
+  const accounts = walletAccounts().map(item => ({ ...item, phoneVerified:null }));
+  const result = rules.transfer(accounts, 'ana', 'BBBBBBBBBBBBBBBB', 10);
+  assert.match(result.error, /Verifica tu teléfono/);
+  assert.equal(result.accounts, accounts);
+});
+test('base64url round-trips arbitrary bytes', () => {
+  const bytes = Uint8Array.from([0, 1, 250, 251, 252, 253, 254, 255, 62, 63]);
+  assert.deepEqual(rules.fromBase64url(rules.base64url(bytes)), bytes);
 });

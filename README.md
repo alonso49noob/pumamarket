@@ -22,12 +22,34 @@ Abre `index.html` en el navegador o sirve esta carpeta con un servidor HTTP est�
 - Portada con datos reales: puntos en juego, predicciones abiertas y un ticker con la probabilidad actual de cada mercado.
 - Modo oscuro desde el footer, con preferencia persistente.
 
+## Verificación de teléfono
+
+Sin servidor: quien administra firma cada número con una clave privada (ECDSA P-256) y envía a ese número un enlace. El sitio comprueba la firma con la clave pública de `clave-publica.js`. Las cuentas sin verificar pueden recibir puntos, pero no enviarlos. Si alguien cambia su teléfono, debe verificarlo de nuevo.
+
+1. Una sola vez, crea tus claves. La privada se guarda en `~/.pumamarket/clave-privada.json`, fuera del repositorio. Haz commit de `clave-publica.js`.
+
+   ```bash
+   node tools/verificar-telefono.js claves
+   ```
+
+2. Cuando alguien te escriba desde su número, genera su enlace y envíaselo **sólo a ese número** por SMS o WhatsApp:
+
+   ```bash
+   node tools/verificar-telefono.js "+56 9 1234 5678"
+   ```
+
+   Para probar en local, agrega `--sitio http://localhost:8765/`.
+
+   También puedes usar el panel de administración en `admin.html` (no está enlazado desde el sitio). Cargas tu archivo de clave privada, que queda sólo en la memoria de la pestaña, y el panel comprueba que coincida con `clave-publica.js`. Luego escribes el número y obtienes el mensaje listo para copiar, con botones para abrir WhatsApp o SMS. La página puede ser pública: sin tu clave privada no sirve para nada.
+
+Nunca compartas ni subas la clave privada. Si se filtra, ejecuta `claves --reemplazar`, haz commit de la nueva `clave-publica.js` y los enlaces anteriores dejarán de servir.
+
 ## Alcance
 
-Esto es un prototipo local. Las cuentas, teléfonos, hashes de contraseña, sesión, saldos, solicitudes de recuperación, mercados y predicciones se guardan únicamente en el navegador. No hay autenticación de servidor ni sincronización entre usuarios o dispositivos. La unicidad del teléfono sólo se comprueba contra las cuentas de este navegador y origen; no hay SMS ni comprobación de titularidad. Para garantizar unicidad global se necesita un backend con una restricción única sobre el teléfono normalizado y verificación del número. Las solicitudes de recuperación no se envían a nadie. No uses contraseñas reales en esta demo.
+Esto es un prototipo local. Las cuentas, teléfonos, hashes de contraseña, sesión, saldos, solicitudes de recuperación, mercados y predicciones se guardan únicamente en el navegador. No hay autenticación de servidor ni sincronización entre usuarios o dispositivos. La unicidad del teléfono sólo se comprueba contra las cuentas de este navegador y origen. La verificación de teléfono prueba que la persona recibió tu enlace, pero como todo vive en el navegador, alguien con conocimientos técnicos puede editar sus datos locales y saltársela. Para garantizar unicidad global y una verificación que no se pueda evitar se necesita un backend. Las solicitudes de recuperación no se envían a nadie. No uses contraseñas reales en esta demo.
 
 Los tres mercados iniciales, sus porcentajes, historial inicial y señales de comunidad son ejemplos. El gráfico identifica este historial como ilustrativo; los nuevos datos se calculan a partir de la proporción acumulada de puntos a Sí entre las predicciones locales. Los mercados nuevos comienzan sin datos. Los periodos se cuentan desde la última observación. Los mercados de ejemplo no tienen dueño y no se pueden resolver. La resolución depende de la palabra de quien creó el mercado: no hay verificación externa, y esa persona también puede predecir en su propio mercado. Los puntos no tienen valor monetario.
 
 ## Comprobaciones
 
-Ejecuta `node --test tests/domain.test.js` para verificar la normalización y unicidad de teléfonos, el cálculo de series del gráfico, el reparto de puntos al resolver mercados, las direcciones de billetera y las transferencias. No requiere instalar dependencias.
+Ejecuta `node --test tests/domain.test.js` para verificar la normalización y unicidad de teléfonos, el cálculo de series del gráfico, el reparto de puntos al resolver mercados, las direcciones de billetera, las transferencias y la firma de verificación de teléfonos. No requiere instalar dependencias.

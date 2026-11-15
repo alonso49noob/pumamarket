@@ -104,12 +104,52 @@ const PumaDomain = {
     }
     return result;
   },
+  // Phone verification: the admin signs a phone number offline (ECDSA P-256)
+  // and the site checks that signature with the published public key.
+  VERIFY_PREFIX: 'pumamarket-verificacion:v1:',
+  VERIFY_ALGORITHM: { name:'ECDSA', namedCurve:'P-256' },
+  base64url(bytes) {
+    let text = '';
+    for (const byte of bytes) text += String.fromCharCode(byte);
+    return btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  },
+  fromBase64url(text) {
+    if (!/^[A-Za-z0-9_-]+$/.test(text ?? '')) return null;
+    try {
+      const raw = atob(text.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((text.length + 3) % 4));
+      return Uint8Array.from(raw, char => char.charCodeAt(0));
+    } catch { return null; }
+  },
+  verificationLink(site, phone, signature) {
+    return `${site}#verificar/${this.normalizePhone(phone).slice(1)}/${signature}`;
+  },
+  parseVerification(hash) {
+    const match = /^#verificar\/(\d{8,15})\/([A-Za-z0-9_-]{40,200})$/.exec(hash ?? '');
+    return match ? { phone:`+${match[1]}`, signature:match[2] } : null;
+  },
+  async signPhone(phone, privateJwk, subtle) {
+    const normalized = this.normalizePhone(phone);
+    if (!normalized) throw new Error('Número de teléfono no válido.');
+    const key = await subtle.importKey('jwk', privateJwk, this.VERIFY_ALGORITHM, false, ['sign']);
+    const signature = await subtle.sign({ name:'ECDSA', hash:'SHA-256' }, key, new TextEncoder().encode(this.VERIFY_PREFIX + normalized));
+    return this.base64url(new Uint8Array(signature));
+  },
+  async verifyPhone(phone, signature, publicJwk, subtle) {
+    const normalized = this.normalizePhone(phone);
+    const bytes = this.fromBase64url(signature);
+    if (!normalized || !bytes || !publicJwk || !subtle) return false;
+    try {
+      const key = await subtle.importKey('jwk', publicJwk, this.VERIFY_ALGORITHM, false, ['verify']);
+      return await subtle.verify({ name:'ECDSA', hash:'SHA-256' }, key, bytes, new TextEncoder().encode(this.VERIFY_PREFIX + normalized));
+    } catch { return false; }
+  },
   transfer(accounts, fromId, toWallet, amount, { id = '', date = new Date().toISOString() } = {}) {
     const sender = accounts.find(item => item.id === fromId);
     const wallet = this.normalizeWallet(toWallet);
     const receiver = wallet && accounts.find(item => item.wallet === wallet);
     let error = '';
     if (!sender) error = 'Inicia sesión para transferir puntos.';
+    else if (!sender.phoneVerified) error = 'Verifica tu teléfono antes de transferir puntos.';
     else if (!wallet) error = 'La dirección debe tener 16 caracteres (0-9 y A-F).';
     else if (!receiver) error = 'No hay ninguna cuenta con esa dirección en este navegador.';
     else if (receiver.id === sender.id) error = 'No puedes transferir puntos a tu propia cuenta.';

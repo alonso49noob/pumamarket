@@ -159,3 +159,16 @@ td small.result-lost { color:#b45f43; }
 [data-theme=dark] .transfer-recipient.found,[data-theme=dark] .transfer-in b { color:#8fdca2; }
 @media(max-width:900px) { .wallet-grid { grid-template-columns:1fr; } }
 @media(max-width:540px) { .wallet-section { padding:42px 18px; }.wallet-panel,.conversion-panel { padding:19px 14px; }.wallet-address { flex-direction:column; align-items:stretch; } }
+
+/* Phone verification status */
+.phone-status { display:flex; flex-direction:column; gap:4px; margin:14px 0 4px; padding:12px 14px; border:1px solid #e6c9a8; border-radius:8px; background:#fff6ea; font-size:12px; line-height:1.55; }
+.phone-status:empty { display:none; }
+.phone-status b { color:#8a4b14; }
+.phone-status span { color:var(--muted); }
+.phone-status.verified { border-color:#b9dcc2; background:#ecf7ee; }
+.phone-status.verified b { color:#1f6b3a; }
+.wallet-panel input:disabled,.wallet-panel button:disabled { opacity:.5; cursor:not-allowed; }
+[data-theme=dark] .phone-status { border-color:#6b4a2a; background:#2a2118; }
+[data-theme=dark] .phone-status b { color:#ffc98f; }
+[data-theme=dark] .phone-status.verified { border-color:#2f5a3c; background:#16271d; }
+[data-theme=dark] .phone-status.verified b { color:#9fe0b0; }

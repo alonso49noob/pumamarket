@@ -119,6 +119,7 @@ signInButton.addEventListener('click', () => {
     $('#accountName').textContent = account.name;
     $('#accountPhone').value = account.phone ?? '';
     $('#accountError').textContent = '';
+    renderVerification();
     toggleModal($('#accountModal'), true); return;
   }
   if (user && !account) { user = null; storage.set('puma-user', null); }
@@ -160,7 +161,7 @@ $('#authForm').addEventListener('submit', async event => {
   storage.set('puma-user', user);
   toggleModal(authModal, false);
   setSignedInUI();
-  showToast(isReturning ? `Bienvenido de vuelta, ${user.name}` : `Bienvenido, ${user.name}`, isReturning ? 'Tu sesión está lista para continuar.' : 'Tu acceso está listo. Tus puntos Puma son virtuales.');
+  showToast(isReturning ? `Bienvenido de vuelta, ${user.name}` : `Bienvenido, ${user.name}`, isReturning ? 'Tu sesión está lista para continuar.' : 'Tu acceso está listo. Verifica tu teléfono para poder transferir puntos.');
   const action = pendingAction;
   pendingAction = null;
   if (action) action();
@@ -379,7 +380,9 @@ const clp = value => Number(value).toLocaleString('es-CL', { style:'currency', c
 function renderWallet() {
   $('#walletSignedOut').hidden = Boolean(account);
   $('#walletSignedIn').hidden = !account;
+  renderVerification();
   if (!account) return;
+  $$('#transferForm input, #transferForm button').forEach(control => control.disabled = !account.phoneVerified);
   $('#walletAddress').textContent = PumaDomain.formatWallet(account.wallet);
   $('#walletBalance').textContent = `${points(balance)} · ≈ ${clp(PumaDomain.toCLP(balance, supplyNow()))} ref.`;
   $('#transferAmount').max = balance;
@@ -554,9 +557,52 @@ $('#accountPhoneForm').addEventListener('submit', event => {
   const error = PumaDomain.phoneError($('#accountPhone').value, accounts, account.id);
   $('#accountError').textContent = error;
   if (error) return;
-  account.phone = PumaDomain.normalizePhone($('#accountPhone').value); saveAccount();
-  $('#accountPhone').value = account.phone; showToast('Teléfono guardado', 'Tu perfil local está actualizado.');
+  const phone = PumaDomain.normalizePhone($('#accountPhone').value);
+  const changed = phone !== account.phone;
+  account.phone = phone;
+  // A verification proves one specific number, so a new number starts over.
+  if (changed) account.phoneVerified = null;
+  saveAccount();
+  $('#accountPhone').value = account.phone;
+  renderVerification(); renderWallet();
+  showToast('Teléfono guardado', changed ? 'Pide un nuevo enlace de verificación para este número.' : 'Tu perfil local está actualizado.');
 });
+
+// Phone verification through a link signed by the admin.
+function renderVerification() {
+  const verified = Boolean(account?.phoneVerified);
+  const keyReady = Boolean(window.PUMA_PUBLIC_KEY);
+  const pending = !account?.phone
+    ? 'Agrega un teléfono para poder verificar tu cuenta.'
+    : keyReady
+      ? `Pendiente de verificación. Escríbele a quien administra PumaMarket desde ${account.phone} y te responderá con un enlace para verificarlo.`
+      : 'La verificación de teléfonos aún no está configurada en este sitio.';
+  const html = verified
+    ? `<b>✓ Teléfono verificado</b><span>${escapeHTML(account.phone)} · ${dateLabel(account.phoneVerified.at)}</span>`
+    : `<b>Teléfono sin verificar</b><span>${escapeHTML(pending)}</span>`;
+  $('#phoneStatus').innerHTML = account ? html : '';
+  $('#phoneStatus').classList.toggle('verified', verified);
+  $('#walletVerify').hidden = !account || verified;
+  $('#walletVerify').innerHTML = `<b>Verifica tu teléfono para transferir</b><span>${escapeHTML(pending)} Puedes recibir puntos sin verificar.</span>`;
+}
+async function handleVerificationLink() {
+  const link = PumaDomain.parseVerification(location.hash);
+  if (!link) return false;
+  // Drop the signature from the address bar right away.
+  history.replaceState(null, '', `${location.pathname}${location.search}#mi-cartera`);
+  requireUser(async () => {
+    if (account.phoneVerified && account.phone === link.phone) { showToast('Ya estaba verificado', `${link.phone} ya está verificado en esta cuenta.`); return; }
+    if (account.phone !== link.phone) { showToast('El enlace es para otro número', `Este enlace verifica ${link.phone}, pero tu cuenta usa ${account.phone ?? 'ningún teléfono'}.`); return; }
+    const valid = await PumaDomain.verifyPhone(link.phone, link.signature, window.PUMA_PUBLIC_KEY, window.crypto?.subtle);
+    if (!valid) { showToast('Enlace no válido', 'La firma no coincide. Pide un enlace nuevo.'); return; }
+    account.phoneVerified = { at:new Date().toISOString() };
+    saveAccount();
+    renderVerification(); renderWallet();
+    $('#billetera').scrollIntoView({ behavior:'smooth' });
+    showToast('Teléfono verificado', 'Ya puedes transferir puntos desde tu billetera.');
+  });
+  return true;
+}
 $('#viewAll').addEventListener('click', () => { activeCategory = 'Todos'; $('#searchInput').value = ''; filterMarkets(); });
 $('#createdMarkets').addEventListener('click', event => {
   const link = event.target.closest('[data-created]');
@@ -666,6 +712,7 @@ function drawChart() {
   $$('[data-period]').forEach(button=> { const active=button.dataset.period===chartPeriod; button.classList.toggle('active',active); button.setAttribute('aria-pressed',String(active)); });
 }
 function route() {
+  if (location.hash.startsWith('#verificar/')) { handleVerificationLink(); return; }
   const prefix = '#mercado/';
   const id = location.hash.startsWith(prefix) ? location.hash.slice(prefix.length) : null;
   currentDetail = id ? $$('.market-card').find(card=>card.dataset.id===id) : null;

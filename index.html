@@ -107,6 +107,7 @@
               <span class="wallet-label">Tu dirección</span>
               <div class="wallet-address"><code id="walletAddress"></code><button id="copyWallet" type="button">Copiar</button></div>
               <div class="wallet-balance"><span>Saldo disponible</span><b id="walletBalance"></b></div>
+              <div class="phone-status" id="walletVerify" hidden></div>
               <form id="transferForm" novalidate>
                 <label>Dirección de destino<input id="transferTo" type="text" required maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" aria-describedby="transferRecipient" /></label>
                 <small id="transferRecipient" class="transfer-recipient" aria-live="polite"></small>
@@ -221,7 +222,7 @@
         <p class="modal-note" id="authNote">Crea una sesión para guardar tus predicciones y recibir <b>100 puntos Puma</b>. Son virtuales: no tienen valor monetario.</p>
         <form id="authForm">
           <label>Nombre de usuario<input id="userName" type="text" placeholder="ej. puma_curioso" required minlength="2" maxlength="24" autocomplete="username" /></label>
-          <label id="phoneLabel">Número de teléfono<input id="userPhone" type="tel" placeholder="+56 9 1234 5678" autocomplete="tel" maxlength="30" aria-describedby="phoneHint" /><small id="phoneHint">Incluye el código de país (+). Un teléfono por cuenta en este navegador. Sin verificación por SMS.</small></label>
+          <label id="phoneLabel">Número de teléfono<input id="userPhone" type="tel" placeholder="+56 9 1234 5678" autocomplete="tel" maxlength="30" aria-describedby="phoneHint" /><small id="phoneHint">Incluye el código de país (+). Un teléfono por cuenta. Después te enviaremos un enlace a este número para verificarlo. Sólo se guarda en este navegador.</small></label>
           <label>Contraseña<input id="userPassword" type="password" placeholder="Mínimo 4 caracteres" required minlength="4" maxlength="72" autocomplete="current-password" /></label>
           <button class="primary-button full" id="authSubmit" type="submit">Crear acceso <span>→</span></button>
           <p class="form-error" id="authError" role="alert"></p>
@@ -243,7 +244,7 @@
       </section>
     </div>
 
-    <div class="modal-backdrop" id="accountModal" aria-hidden="true"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="accountTitle"><button class="close-modal" data-close="accountModal" aria-label="Cerrar">×</button><p class="eyebrow">MI CUENTA</p><h2 id="accountTitle">Tu perfil Puma</h2><p id="accountName"></p><form id="accountPhoneForm"><label>Teléfono asociado<input id="accountPhone" type="tel" autocomplete="tel" placeholder="+56 9 1234 5678" required maxlength="30" /></label><p class="modal-note">Incluye el código de país. El número no se verifica por SMS y debe ser único entre las cuentas de este navegador.</p><p id="accountError" class="form-error" role="alert"></p><button class="primary-button full" type="submit">Guardar teléfono</button></form><button class="logout-account" id="accountLogout">Cerrar sesión ↗</button></section></div>
+    <div class="modal-backdrop" id="accountModal" aria-hidden="true"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="accountTitle"><button class="close-modal" data-close="accountModal" aria-label="Cerrar">×</button><p class="eyebrow">MI CUENTA</p><h2 id="accountTitle">Tu perfil Puma</h2><p id="accountName"></p><div class="phone-status" id="phoneStatus" role="status"></div><form id="accountPhoneForm"><label>Teléfono asociado<input id="accountPhone" type="tel" autocomplete="tel" placeholder="+56 9 1234 5678" required maxlength="30" /></label><p class="modal-note">Incluye el código de país. Debe ser único entre las cuentas de este navegador. Si lo cambias, tendrás que verificarlo de nuevo.</p><p id="accountError" class="form-error" role="alert"></p><button class="primary-button full" type="submit">Guardar teléfono</button></form><button class="logout-account" id="accountLogout">Cerrar sesión ↗</button></section></div>
     <div class="modal-backdrop" id="predictionModal" aria-hidden="true">
       <section class="modal prediction-modal" role="dialog" aria-modal="true" aria-labelledby="predictionTitle">
         <button class="close-modal" data-close="predictionModal" aria-label="Cerrar">×</button>
@@ -275,6 +276,7 @@
     </div>
     <div class="toast" id="toast" role="status"><span>✓</span><div><b>Predicción registrada</b><small>Tus puntos Puma se actualizaron.</small></div></div>
     <div class="search-panel" id="searchPanel"><input id="searchInput" placeholder="Busca un mercado, tema o país..." /><span>ESC para cerrar</span></div>
+    <script src="clave-publica.js"></script>
     <script src="domain.js"></script>
     <script src="app.js"></script>
   </body>
